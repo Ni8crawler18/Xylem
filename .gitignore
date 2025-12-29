@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+frontend/dist/
+*.tsbuildinfo
+
+# Database
+backend/data/*.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# ZKP artifacts (large files - keep compiled ones in circuits/)
+*.ptau
+*.r1cs
+*.sym
