@@ -4,9 +4,13 @@
   "description": "ZKP-based KYC verification backend",
   "main": "server.js",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "node --watch server.js",
     "start": "node server.js",
+    "build": "echo 'No build step required'",
     "setup-db": "node services/db.js --setup"
   },
   "dependencies": {
