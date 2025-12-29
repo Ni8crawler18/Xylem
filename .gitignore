@@ -41,3 +41,5 @@ coverage/
 *.ptau
 *.r1cs
 *.sym
+
+CLAUDE.md
