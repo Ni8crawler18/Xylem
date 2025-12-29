@@ -42,12 +42,12 @@ export async function generateProofClientSide(verificationType, privateInputs, p
       }
       isValid = age >= minimumAge
 
-      // Circuit inputs
+      // Circuit inputs - always use fresh salt for unique nullifier each time
       input = {
         birthYear: dateOfBirth.year,
         birthMonth: dateOfBirth.month,
         birthDay: dateOfBirth.day,
-        salt: privateInputs.salt || Math.floor(Math.random() * 1000000000),
+        salt: Math.floor(Math.random() * 1000000000),
         currentYear: currentDate.year,
         currentMonth: currentDate.month,
         currentDay: currentDate.day,
@@ -67,9 +67,10 @@ export async function generateProofClientSide(verificationType, privateInputs, p
         aadhaarDigits[0] !== 0 && aadhaarDigits[0] !== 1
 
       // Circuit inputs - signal names must match circuit definition
+      // Always use fresh salt for unique nullifier each time
       input = {
         aadhaar: aadhaarDigits,
-        salt: privateInputs.salt || Math.floor(Math.random() * 1000000000),
+        salt: Math.floor(Math.random() * 1000000000),
         credentialCommitment: commitment || '0'
       }
       break
@@ -82,9 +83,10 @@ export async function generateProofClientSide(verificationType, privateInputs, p
       isValid = stateCode === requiredStateCode
 
       // Circuit inputs - stateCode is calculated internally from pincode
+      // Always use fresh salt for unique nullifier each time
       input = {
         pincode: pincode,
-        salt: privateInputs.salt || Math.floor(Math.random() * 1000000000),
+        salt: Math.floor(Math.random() * 1000000000),
         requiredStateCode: requiredStateCode
       }
       break

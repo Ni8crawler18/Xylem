@@ -63,7 +63,23 @@ export const api = {
   getVerificationHistory: (limit = 50, offset = 0) =>
     request(`/verify/history?limit=${limit}&offset=${offset}`, { method: 'GET' }),
 
-  getVerificationStatus: () => request('/verify/status', { method: 'GET' })
+  getVerificationStatus: () => request('/verify/status', { method: 'GET' }),
+
+  // QR Code verification flow
+  createVerificationRequest: (verificationType, verifierName) =>
+    request('/verify/request', {
+      method: 'POST',
+      body: JSON.stringify({ verificationType, verifierName })
+    }),
+
+  getVerificationRequest: (requestId) =>
+    request(`/verify/request/${requestId}`, { method: 'GET' }),
+
+  completeVerificationRequest: (requestId, data) =>
+    request(`/verify/request/${requestId}/complete`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
 }
 
 export default api

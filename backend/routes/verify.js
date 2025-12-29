@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { verificationOps } from '../services/db.js';
+import { verificationOps, verificationRequestOps } from '../services/db.js';
 import {
   verifyProof,
   generateAgeProof,
@@ -268,6 +268,172 @@ router.get('/history', async (req, res) => {
     stats,
     pagination: { limit, offset, total: history.length }
   });
+});
+
+/**
+ * POST /api/v1/verify/request - Create verification request (QR code)
+ */
+router.post('/request', async (req, res, next) => {
+  try {
+    const { verificationType, verifierName } = req.body;
+
+    if (!verificationType) {
+      return res.status(400).json({
+        error: true,
+        message: 'Missing required field: verificationType'
+      });
+    }
+
+    const validTypes = ['age', 'aadhaar', 'state'];
+    if (!validTypes.includes(verificationType)) {
+      return res.status(400).json({
+        error: true,
+        message: 'Invalid verification type. Use: age, aadhaar, or state'
+      });
+    }
+
+    const request = await verificationRequestOps.create({
+      verification_type: verificationType,
+      verifier_name: verifierName
+    });
+
+    res.json({
+      success: true,
+      requestId: request.id,
+      verificationType,
+      expiresAt: request.expiresAt,
+      qrData: JSON.stringify({
+        requestId: request.id,
+        type: verificationType,
+        verifier: verifierName || 'Anonymous Verifier'
+      })
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/v1/verify/request/:id - Get verification request status
+ */
+router.get('/request/:id', async (req, res, next) => {
+  try {
+    const request = await verificationRequestOps.findById(req.params.id);
+
+    if (!request) {
+      return res.status(404).json({
+        error: true,
+        message: 'Verification request not found'
+      });
+    }
+
+    const isExpired = new Date(request.expires_at) < new Date();
+
+    res.json({
+      success: true,
+      request: {
+        id: request.id,
+        verificationType: request.verification_type,
+        verifierName: request.verifier_name,
+        status: isExpired && request.status === 'pending' ? 'expired' : request.status,
+        createdAt: request.created_at,
+        expiresAt: request.expires_at,
+        completedAt: request.completed_at,
+        verificationId: request.verification_id
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/v1/verify/request/:id/complete - Complete verification request with proof
+ */
+router.post('/request/:id/complete', async (req, res, next) => {
+  const startTime = Date.now();
+
+  try {
+    const { proof, publicSignals, nullifier } = req.body;
+    const requestId = req.params.id;
+
+    const request = await verificationRequestOps.findById(requestId);
+
+    if (!request) {
+      return res.status(404).json({
+        error: true,
+        message: 'Verification request not found'
+      });
+    }
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({
+        error: true,
+        message: 'Verification request already completed or expired'
+      });
+    }
+
+    if (new Date(request.expires_at) < new Date()) {
+      await verificationRequestOps.updateStatus(requestId, 'expired');
+      return res.status(400).json({
+        error: true,
+        message: 'Verification request has expired'
+      });
+    }
+
+    if (!proof || !publicSignals || !nullifier) {
+      return res.status(400).json({
+        error: true,
+        message: 'Missing required fields: proof, publicSignals, nullifier'
+      });
+    }
+
+    // Check for replay attack
+    const existingVerification = await verificationOps.findByNullifier(nullifier);
+    if (existingVerification) {
+      return res.status(400).json({
+        error: true,
+        message: 'Proof has already been used (nullifier collision)',
+        code: 'NULLIFIER_REUSE'
+      });
+    }
+
+    const verificationType = request.verification_type;
+    const verificationResult = await verifyProof(verificationType, proof, publicSignals);
+    const verificationTime = Date.now() - startTime;
+
+    const isValid = publicSignals[0] === '1';
+    const isSuccessful = verificationResult.valid && isValid;
+
+    let verificationId = null;
+    if (isSuccessful) {
+      verificationId = await verificationOps.create({
+        verification_type: verificationType,
+        nullifier,
+        public_signals: publicSignals,
+        verification_time_ms: verificationTime,
+        result: true
+      });
+    }
+
+    await verificationRequestOps.updateStatus(
+      requestId,
+      isSuccessful ? 'completed' : 'failed',
+      verificationId
+    );
+
+    res.json({
+      success: true,
+      verified: isSuccessful,
+      requestId,
+      verificationId,
+      verificationTime: `${verificationTime}ms`,
+      piiExposed: false,
+      dpdpCompliant: true
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;
