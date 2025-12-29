@@ -93,10 +93,25 @@ export async function initializeDatabase() {
     )
   `);
 
+  // Verification requests table - for QR code verification flow
+  db.run(`
+    CREATE TABLE IF NOT EXISTS verification_requests (
+      id TEXT PRIMARY KEY,
+      verification_type TEXT NOT NULL,
+      verifier_name TEXT,
+      status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT (datetime('now')),
+      expires_at TEXT,
+      completed_at TEXT,
+      verification_id TEXT
+    )
+  `);
+
   // Create indexes
   db.run(`CREATE INDEX IF NOT EXISTS idx_verifications_type ON verifications(verification_type)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_verifications_nullifier ON verifications(nullifier)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_credentials_commitment ON credentials(commitment)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_verification_requests_status ON verification_requests(status)`);
 
   saveDb();
   console.log('Database initialized successfully');
@@ -245,6 +260,57 @@ export const credentialOps = {
   }
 };
 
+// Verification request operations (for QR code flow)
+export const verificationRequestOps = {
+  create: async (data) => {
+    const db = await getDb();
+    const id = uuidv4().slice(0, 8).toUpperCase(); // Short ID for easy sharing
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min expiry
+    db.run(`
+      INSERT INTO verification_requests (id, verification_type, verifier_name, expires_at)
+      VALUES (?, ?, ?, ?)
+    `, [id, data.verification_type, data.verifier_name || 'Anonymous Verifier', expiresAt]);
+    saveDb();
+    return { id, expiresAt };
+  },
+
+  findById: async (id) => {
+    const db = await getDb();
+    const result = db.exec('SELECT * FROM verification_requests WHERE id = ?', [id]);
+    if (result.length === 0 || result[0].values.length === 0) return null;
+
+    const columns = result[0].columns;
+    const values = result[0].values[0];
+    return Object.fromEntries(columns.map((col, i) => [col, values[i]]));
+  },
+
+  updateStatus: async (id, status, verificationId = null) => {
+    const db = await getDb();
+    db.run(`
+      UPDATE verification_requests
+      SET status = ?, completed_at = datetime('now'), verification_id = ?
+      WHERE id = ?
+    `, [status, verificationId, id]);
+    saveDb();
+  },
+
+  getPending: async (verifierName) => {
+    const db = await getDb();
+    const result = db.exec(`
+      SELECT * FROM verification_requests
+      WHERE verifier_name = ? AND status = 'pending' AND expires_at > datetime('now')
+      ORDER BY created_at DESC
+    `, [verifierName]);
+
+    if (result.length === 0) return [];
+
+    const columns = result[0].columns;
+    return result[0].values.map(row =>
+      Object.fromEntries(columns.map((col, i) => [col, row[i]]))
+    );
+  }
+};
+
 // Seed default issuer for demo
 export async function seedDefaultIssuer() {
   const db = await getDb();
@@ -268,5 +334,6 @@ export default {
   verificationOps,
   issuerOps,
   credentialOps,
+  verificationRequestOps,
   seedDefaultIssuer
 };
