@@ -49,7 +49,7 @@ function Navigation({ onLoginClick }) {
               Architecture
             </button>
             <a
-              href="https://github.com"
+              href="https://github.com/Ni8crawler18/Xylem"
               target="_blank"
               rel="noopener noreferrer"
               className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all font-mono"

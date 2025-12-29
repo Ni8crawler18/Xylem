@@ -364,7 +364,7 @@ function Home({ onLoginClick }) {
                 Privacy-preserving credential verification using zero-knowledge proofs.
               </p>
               <div className="flex space-x-4">
-                <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white transition-colors">
+                <a href="https://github.com/Ni8crawler18/Xylem" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white transition-colors">
                   <Github className="h-5 w-5" />
                 </a>
                 <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white transition-colors">
@@ -390,7 +390,7 @@ function Home({ onLoginClick }) {
               <ul className="space-y-3">
                 <li><a href="#" className="text-sm text-gray-500 hover:text-white transition-colors">Documentation</a></li>
                 <li><a href="#" className="text-sm text-gray-500 hover:text-white transition-colors">API Reference</a></li>
-                <li><a href="#" className="text-sm text-gray-500 hover:text-white transition-colors">GitHub</a></li>
+                <li><a href="https://github.com/Ni8crawler18/Xylem" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-500 hover:text-white transition-colors">GitHub</a></li>
                 <li><a href="#" className="text-sm text-gray-500 hover:text-white transition-colors">Examples</a></li>
               </ul>
             </div>

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: eigenparse-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install; npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGIN
+        sync: false
+    healthCheckPath: /health

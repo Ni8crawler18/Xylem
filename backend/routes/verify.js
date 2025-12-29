@@ -47,18 +47,24 @@ router.post('/age', async (req, res, next) => {
 
     const isOver18 = publicSignals[0] === '1';
     const minimumAge = parseInt(publicSignals[1]) || 18;
+    const isSuccessful = verificationResult.valid && isOver18;
 
-    const verificationId = await verificationOps.create({
-      verification_type: 'age',
-      nullifier,
-      public_signals: publicSignals,
-      verification_time_ms: verificationTime,
-      result: verificationResult.valid && isOver18
-    });
+    // Only store nullifier for successful verifications to prevent replay attacks
+    // Failed verifications (e.g., age < 18) should allow retry with same credentials
+    let verificationId = null;
+    if (isSuccessful) {
+      verificationId = await verificationOps.create({
+        verification_type: 'age',
+        nullifier,
+        public_signals: publicSignals,
+        verification_time_ms: verificationTime,
+        result: true
+      });
+    }
 
     res.json({
       success: true,
-      verified: verificationResult.valid && isOver18,
+      verified: isSuccessful,
       attribute: `age >= ${minimumAge}`,
       verificationId,
       verificationTime: `${verificationTime}ms`,
@@ -100,18 +106,23 @@ router.post('/aadhaar', async (req, res, next) => {
     const verificationTime = Date.now() - startTime;
 
     const isValid = publicSignals[0] === '1';
+    const isSuccessful = verificationResult.valid && isValid;
 
-    const verificationId = await verificationOps.create({
-      verification_type: 'aadhaar',
-      nullifier,
-      public_signals: publicSignals,
-      verification_time_ms: verificationTime,
-      result: verificationResult.valid && isValid
-    });
+    // Only store nullifier for successful verifications
+    let verificationId = null;
+    if (isSuccessful) {
+      verificationId = await verificationOps.create({
+        verification_type: 'aadhaar',
+        nullifier,
+        public_signals: publicSignals,
+        verification_time_ms: verificationTime,
+        result: true
+      });
+    }
 
     res.json({
       success: true,
-      verified: verificationResult.valid && isValid,
+      verified: isSuccessful,
       attribute: 'valid_aadhaar',
       verificationId,
       verificationTime: `${verificationTime}ms`,
@@ -154,19 +165,24 @@ router.post('/state', async (req, res, next) => {
 
     const isFromState = publicSignals[0] === '1';
     const stateCode = publicSignals[1];
+    const isSuccessful = verificationResult.valid && isFromState;
 
-    const verificationId = await verificationOps.create({
-      verification_type: 'state',
-      nullifier,
-      public_signals: publicSignals,
-      verification_time_ms: verificationTime,
-      result: verificationResult.valid && isFromState,
-      metadata: { requiredState }
-    });
+    // Only store nullifier for successful verifications
+    let verificationId = null;
+    if (isSuccessful) {
+      verificationId = await verificationOps.create({
+        verification_type: 'state',
+        nullifier,
+        public_signals: publicSignals,
+        verification_time_ms: verificationTime,
+        result: true,
+        metadata: { requiredState }
+      });
+    }
 
     res.json({
       success: true,
-      verified: verificationResult.valid && isFromState,
+      verified: isSuccessful,
       attribute: `resident_of_state_${stateCode}`,
       verificationId,
       verificationTime: `${verificationTime}ms`,
