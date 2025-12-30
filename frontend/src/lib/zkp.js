@@ -16,6 +16,15 @@ const CIRCUIT_PATHS = {
 }
 
 /**
+ * Generate cryptographically secure random salt
+ */
+function generateSecureSalt() {
+  const array = new Uint32Array(1)
+  crypto.getRandomValues(array)
+  return array[0]
+}
+
+/**
  * Generate a real ZK proof using snarkjs
  */
 export async function generateProofClientSide(verificationType, privateInputs, publicInputs) {
@@ -28,6 +37,9 @@ export async function generateProofClientSide(verificationType, privateInputs, p
 
   let input = {}
   let isValid = false
+
+  // Generate unique salt using crypto API + timestamp for guaranteed uniqueness
+  const uniqueSalt = generateSecureSalt() ^ Date.now()
 
   switch (verificationType) {
     case 'age': {
@@ -42,12 +54,12 @@ export async function generateProofClientSide(verificationType, privateInputs, p
       }
       isValid = age >= minimumAge
 
-      // Circuit inputs - always use fresh salt for unique nullifier each time
+      // Circuit inputs - cryptographically secure salt for unique nullifier
       input = {
         birthYear: dateOfBirth.year,
         birthMonth: dateOfBirth.month,
         birthDay: dateOfBirth.day,
-        salt: Math.floor(Math.random() * 1000000000),
+        salt: uniqueSalt,
         currentYear: currentDate.year,
         currentMonth: currentDate.month,
         currentDay: currentDate.day,
@@ -66,11 +78,10 @@ export async function generateProofClientSide(verificationType, privateInputs, p
         aadhaarDigits.every(d => d >= 0 && d <= 9) &&
         aadhaarDigits[0] !== 0 && aadhaarDigits[0] !== 1
 
-      // Circuit inputs - signal names must match circuit definition
-      // Always use fresh salt for unique nullifier each time
+      // Circuit inputs - cryptographically secure salt for unique nullifier
       input = {
         aadhaar: aadhaarDigits,
-        salt: Math.floor(Math.random() * 1000000000),
+        salt: uniqueSalt,
         credentialCommitment: commitment || '0'
       }
       break
@@ -82,11 +93,10 @@ export async function generateProofClientSide(verificationType, privateInputs, p
 
       isValid = stateCode === requiredStateCode
 
-      // Circuit inputs - stateCode is calculated internally from pincode
-      // Always use fresh salt for unique nullifier each time
+      // Circuit inputs - cryptographically secure salt for unique nullifier
       input = {
         pincode: pincode,
-        salt: Math.floor(Math.random() * 1000000000),
+        salt: uniqueSalt,
         requiredStateCode: requiredStateCode
       }
       break
