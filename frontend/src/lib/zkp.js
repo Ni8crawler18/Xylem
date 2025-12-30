@@ -116,8 +116,11 @@ export async function generateProofClientSide(verificationType, privateInputs, p
 
     const proofTime = Math.round(performance.now() - startTime)
 
-    // Extract nullifier from public signals (last element typically)
-    const nullifier = publicSignals[publicSignals.length - 1] || publicSignals[1]
+    // Public signals order (from circuit definition):
+    // [0] = isValid (output)
+    // [1] = nullifier (output - Poseidon hash of birthYear, birthMonth*100+birthDay, salt)
+    // [2..n] = public inputs (currentYear, currentMonth, currentDay, minimumAge)
+    const nullifier = publicSignals[1]
 
     return {
       proof,

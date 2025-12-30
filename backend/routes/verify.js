@@ -32,21 +32,22 @@ router.post('/age', async (req, res, next) => {
       });
     }
 
-    // Nullifier check disabled for demo
-    // const existingVerification = await verificationOps.findByNullifier(nullifier);
-    // if (existingVerification) {
-    //   return res.status(400).json({
-    //     error: true,
-    //     message: 'Proof has already been used (nullifier collision)',
-    //     code: 'NULLIFIER_REUSE'
-    //   });
-    // }
+    // Check for replay attack (nullifier must be unique)
+    const existingVerification = await verificationOps.findByNullifier(nullifier);
+    if (existingVerification) {
+      return res.status(400).json({
+        error: true,
+        message: 'Proof has already been used (nullifier collision)',
+        code: 'NULLIFIER_REUSE'
+      });
+    }
 
     const verificationResult = await verifyProof('age', proof, publicSignals);
     const verificationTime = Date.now() - startTime;
 
+    // Public signals: [0]=isValid, [1]=nullifier, [2]=currentYear, [3]=currentMonth, [4]=currentDay, [5]=minimumAge
     const isOver18 = publicSignals[0] === '1';
-    const minimumAge = parseInt(publicSignals[1]) || 18;
+    const minimumAge = parseInt(publicSignals[5]) || 18;
     const isSuccessful = verificationResult.valid && isOver18;
 
     // Only store nullifier for successful verifications to prevent replay attacks
@@ -93,15 +94,15 @@ router.post('/aadhaar', async (req, res, next) => {
       });
     }
 
-    // Nullifier check disabled for demo
-    // const existingVerification = await verificationOps.findByNullifier(nullifier);
-    // if (existingVerification) {
-    //   return res.status(400).json({
-    //     error: true,
-    //     message: 'Proof has already been used',
-    //     code: 'NULLIFIER_REUSE'
-    //   });
-    // }
+    // Check for replay attack
+    const existingVerification = await verificationOps.findByNullifier(nullifier);
+    if (existingVerification) {
+      return res.status(400).json({
+        error: true,
+        message: 'Proof has already been used',
+        code: 'NULLIFIER_REUSE'
+      });
+    }
 
     const verificationResult = await verifyProof('aadhaar', proof, publicSignals);
     const verificationTime = Date.now() - startTime;
@@ -152,21 +153,22 @@ router.post('/state', async (req, res, next) => {
       });
     }
 
-    // Nullifier check disabled for demo
-    // const existingVerification = await verificationOps.findByNullifier(nullifier);
-    // if (existingVerification) {
-    //   return res.status(400).json({
-    //     error: true,
-    //     message: 'Proof has already been used',
-    //     code: 'NULLIFIER_REUSE'
-    //   });
-    // }
+    // Check for replay attack
+    const existingVerification = await verificationOps.findByNullifier(nullifier);
+    if (existingVerification) {
+      return res.status(400).json({
+        error: true,
+        message: 'Proof has already been used',
+        code: 'NULLIFIER_REUSE'
+      });
+    }
 
     const verificationResult = await verifyProof('state', proof, publicSignals);
     const verificationTime = Date.now() - startTime;
 
+    // Public signals: [0]=isFromState, [1]=nullifier, [2]=requiredStateCode
     const isFromState = publicSignals[0] === '1';
-    const stateCode = publicSignals[1];
+    const stateCode = publicSignals[2]; // requiredStateCode, not nullifier
     const isSuccessful = verificationResult.valid && isFromState;
 
     // Only store nullifier for successful verifications
@@ -390,15 +392,15 @@ router.post('/request/:id/complete', async (req, res, next) => {
       });
     }
 
-    // Nullifier check disabled for demo
-    // const existingVerification = await verificationOps.findByNullifier(nullifier);
-    // if (existingVerification) {
-    //   return res.status(400).json({
-    //     error: true,
-    //     message: 'Proof has already been used (nullifier collision)',
-    //     code: 'NULLIFIER_REUSE'
-    //   });
-    // }
+    // Check for replay attack
+    const existingVerification = await verificationOps.findByNullifier(nullifier);
+    if (existingVerification) {
+      return res.status(400).json({
+        error: true,
+        message: 'Proof has already been used (nullifier collision)',
+        code: 'NULLIFIER_REUSE'
+      });
+    }
 
     const verificationType = request.verification_type;
     const verificationResult = await verifyProof(verificationType, proof, publicSignals);
