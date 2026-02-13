@@ -688,8 +688,52 @@
     <p style="margin-top: 20px;">ZKP security comes from <strong>mathematics, not secrecy</strong>. The circuit runs client-side &mdash; algorithm is public by design. Anyone can see how the proof is generated. No one can forge a proof without private inputs.</p>
   </div>
 
-  <!-- SLIDE 6: Data Handling -->
+  <!-- SLIDE 6: Use Cases -->
   <div class="slide" data-slide="5">
+    <div class="slide-label">Use Cases</div>
+    <h2>Who needs this &mdash; and why SD-JWT falls short</h2>
+    <div class="accent-line"></div>
+    <div class="tiers">
+      <div class="tier-card">
+        <div class="tier-label">Lending &amp; NBFCs</div>
+        <h3>Loan Pre-qualification</h3>
+        <p>"Age 25-55 AND income 5L-50L AND credit &ge; 700" &mdash; complete eligibility, zero data stored. Nullifiers detect duplicate applications across platforms.</p>
+        <div class="tier-example">RBI gets dedup without central PII</div>
+      </div>
+      <div class="tier-card">
+        <div class="tier-label">Insurance</div>
+        <h3>Bracket Pricing</h3>
+        <p>Insurers price by age bracket (25-35, 35-45). Range proof reveals the bracket, not the DOB. Composite: "age 35-45 AND metro resident" for urban health plans.</p>
+        <div class="tier-example">isAdult tells nothing useful here</div>
+      </div>
+      <div class="tier-card">
+        <div class="tier-label">Government</div>
+        <h3>Subsidy &amp; Scholarships</h3>
+        <p>"Age &le; 25 AND from UP AND income &le; 2.5L" &mdash; one proof replaces document stacks. Nullifier prevents duplicate claims across district offices.</p>
+        <div class="tier-example">No document collection or storage</div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 20px; margin-top: 20px;">
+      <div class="tier-card" style="flex: 1;">
+        <div class="tier-label">State Compliance</div>
+        <h3>Age-gated Services</h3>
+        <p>Drinking age: 21 Karnataka, 25 Maharashtra. Gaming, alcohol delivery, financial products &mdash; each platform sets its own threshold as a public input.</p>
+      </div>
+      <div class="tier-card" style="flex: 1;">
+        <div class="tier-label">Property &amp; Rental</div>
+        <h3>Tenant Verification</h3>
+        <p>Aadhaar (identity) + ITR (income &ge; 3x rent) + EPFO (employed) &mdash; landlord gets a boolean. No salary slips, no Aadhaar copies.</p>
+      </div>
+      <div class="tier-card" style="flex: 1;">
+        <div class="tier-label">KYC Dedup</div>
+        <h3>Cross-platform Identity</h3>
+        <p>Same person at 5 banks = same nullifier. Banks share nullifiers (not PII) via registry. One person, one hash, zero personal data centralized.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Data Handling -->
+  <div class="slide" data-slide="6">
     <div class="slide-label">Data Handling & Deployment</div>
     <h2>What the verifier stores: nothing personal.</h2>
     <div class="accent-line"></div>
@@ -729,8 +773,8 @@
     </div>
   </div>
 
-  <!-- SLIDE 7: Closing -->
-  <div class="slide" data-slide="6">
+  <!-- SLIDE 8: Closing -->
+  <div class="slide" data-slide="7">
     <div class="slide-label">Closing</div>
     <h2>Aadhaar VC tells you what claims exist.<br><span class="highlight">Xylem lets you compute across claims &mdash;<br>without collecting any data.</span></h2>
     <div class="accent-line"></div>
@@ -771,7 +815,7 @@
 </div>
 
 <!-- Slide number -->
-<div class="slide-num" id="slideNum">1 / 7</div>
+<div class="slide-num" id="slideNum">1 / 8</div>
 
 <!-- Keyboard hint -->
 <div class="hint">
