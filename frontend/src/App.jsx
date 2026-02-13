@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import LoginModal from './components/LoginModal'
 import Home from './pages/Home'
+import Slides from './pages/Slides'
 import UserDashboard from './pages/UserDashboard'
 import VerifierDashboard from './pages/VerifierDashboard'
 
@@ -62,6 +63,15 @@ function Navigation({ onLoginClick }) {
             >
               Docs
             </a>
+            <Link
+              to="/slides"
+              className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all font-mono flex items-center space-x-1.5"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 3h20v14H2z" /><path d="M8 21h8" /><path d="M12 17v4" />
+              </svg>
+              <span>Slides</span>
+            </Link>
           </div>
 
           {/* Right side */}
@@ -144,6 +154,16 @@ function AppContent() {
               <main className="pt-16">
                 <Home onLoginClick={() => setShowLoginModal(true)} />
               </main>
+            </>
+          }
+        />
+
+        <Route
+          path="/slides"
+          element={
+            <>
+              <Navigation onLoginClick={() => setShowLoginModal(true)} />
+              <Slides />
             </>
           }
         />

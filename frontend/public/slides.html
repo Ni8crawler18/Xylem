@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Xylem — Prove Without Sharing</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+  /* Fallback if Google Fonts fail */
+  @font-face { font-family: 'Inter'; src: local('Inter'), local('Helvetica Neue'), local('Arial'); }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1a1a1a;
+    --border: #2a2a2a;
+    --text: #e8e8e8;
+    --text-dim: #888;
+    --accent: #22c55e;
+    --accent-dim: #16a34a;
+    --accent-glow: rgba(34, 197, 94, 0.15);
+    --red: #ef4444;
+    --yellow: #eab308;
+    --blue: #3b82f6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* Slide container */
+  .deck {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 100px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    transform: translateX(40px);
+  }
+
+  .slide.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+  }
+
+  .slide.prev {
+    transform: translateX(-40px);
+  }
+
+  /* Typography */
+  h1 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 20px;
+  }
+
+  h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--accent);
+  }
+
+  p, li {
+    font-size: 1.15rem;
+    line-height: 1.7;
+    color: var(--text-dim);
+    max-width: 900px;
+  }
+
+  .lead {
+    font-size: 1.35rem;
+    color: var(--text);
+    font-weight: 400;
+    line-height: 1.6;
+    max-width: 800px;
+  }
+
+  .highlight {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .dim { color: var(--text-dim); }
+
+  strong { color: var(--text); font-weight: 600; }
+
+  /* Accent line */
+  .accent-line {
+    width: 60px;
+    height: 4px;
+    background: var(--accent);
+    border-radius: 2px;
+    margin-bottom: 24px;
+  }
+
+  /* Tag pills */
+  .tags {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 6px 16px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    background: var(--surface);
+  }
+  .tag.green {
+    border-color: var(--accent-dim);
+    color: var(--accent);
+    background: var(--accent-glow);
+  }
+
+  /* Bullet list */
+  .bullets {
+    list-style: none;
+    margin-top: 16px;
+  }
+  .bullets li {
+    position: relative;
+    padding-left: 24px;
+    margin-bottom: 14px;
+    font-size: 1.1rem;
+  }
+  .bullets li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10px;
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  /* Numbered list */
+  .numbered {
+    list-style: none;
+    margin-top: 16px;
+    counter-reset: step;
+  }
+  .numbered li {
+    position: relative;
+    padding-left: 40px;
+    margin-bottom: 14px;
+    font-size: 1.05rem;
+    counter-increment: step;
+  }
+  .numbered li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 1px;
+    width: 26px;
+    height: 26px;
+    background: var(--accent-glow);
+    border: 1px solid var(--accent-dim);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* Tier cards */
+  .tiers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 24px;
+  }
+  .tier-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color 0.3s;
+  }
+  .tier-card:hover {
+    border-color: var(--accent-dim);
+  }
+  .tier-card .tier-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .tier-card h3 {
+    font-size: 1.1rem;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  .tier-card p {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  .tier-example {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--accent);
+    background: var(--accent-glow);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 12px;
+    border: 1px solid rgba(34, 197, 94, 0.1);
+  }
+
+  /* Flow diagram */
+  .flow {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-top: 28px;
+    width: 100%;
+  }
+  .flow-node {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 20px;
+    text-align: center;
+    position: relative;
+  }
+  .flow-node.device {
+    flex: 1.5;
+    border-color: var(--accent-dim);
+    background: var(--accent-glow);
+  }
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    flex-shrink: 0;
+    color: var(--text-dim);
+    font-size: 1.4rem;
+  }
+  .flow-node .flow-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .flow-node .flow-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .flow-node .flow-items {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .flow-node .flow-items .accent-text {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Comparison table */
+  .compare-table {
+    margin-top: 20px;
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 800px;
+  }
+  .compare-table th, .compare-table td {
+    padding: 12px 20px;
+    text-align: left;
+    font-size: 0.95rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table th {
+    color: var(--text-dim);
+    font-weight: 500;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .compare-table td:first-child {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .compare-table .yes {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .compare-table .no {
+    color: var(--red);
+    font-weight: 500;
+  }
+
+  /* Data table */
+  .data-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0;
+    margin-top: 20px;
+    max-width: 550px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .data-grid .dg-cell {
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .data-grid .dg-cell:nth-last-child(-n+2) {
+    border-bottom: none;
+  }
+  .data-grid .dg-header {
+    background: var(--surface);
+    font-weight: 500;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .data-grid .dg-label {
+    color: var(--text);
+  }
+  .data-grid .dg-stored {
+    text-align: center;
+    font-weight: 600;
+  }
+
+  /* Code block */
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    margin-top: 16px;
+    max-width: 600px;
+    color: var(--text-dim);
+  }
+  .code-block .keyword { color: var(--blue); }
+  .code-block .string { color: var(--accent); }
+  .code-block .comment { color: #555; }
+
+  /* Two column */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-top: 20px;
+    align-items: start;
+  }
+
+  /* Closing slide */
+  .closing-points {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 20px;
+    margin-bottom: 24px;
+  }
+  .closing-point {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .closing-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+    background: var(--accent-glow);
+    border: 1px solid var(--accent-dim);
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .closing-point p {
+    font-size: 1.05rem;
+    color: var(--text-dim);
+  }
+  .closing-point strong {
+    color: var(--text);
+  }
+
+  /* Bottom bar */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--surface2);
+    z-index: 100;
+  }
+  .progress {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.4s ease;
+  }
+
+  /* Slide number */
+  .slide-num {
+    position: fixed;
+    bottom: 16px;
+    right: 32px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    z-index: 100;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Slide label */
+  .slide-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  /* Subtitle */
+  .subtitle {
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  /* Logo / brand */
+  .brand {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  /* Title slide special */
+  .title-center {
+    text-align: center;
+    align-items: center;
+  }
+  .title-center .accent-line {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Print / PDF styles */
+  @media print {
+    body { overflow: visible; background: white; color: #111; }
+    .slide {
+      position: relative;
+      opacity: 1;
+      visibility: visible;
+      transform: none;
+      page-break-after: always;
+      height: 100vh;
+      padding: 50px 80px;
+    }
+    .slide:last-child { page-break-after: avoid; }
+    .bottom-bar, .slide-num { display: none; }
+    .tag { border-color: #ccc; color: #555; background: #f5f5f5; }
+    .tag.green { border-color: #16a34a; color: #16a34a; background: #f0fdf4; }
+    h1, h2, h3, strong { color: #111; }
+    p, li { color: #444; }
+    .highlight, .accent-text, .tier-label, .yes { color: #16a34a; }
+    .no { color: #dc2626; }
+    .flow-node { border-color: #ddd; background: #f9f9f9; }
+    .flow-node.device { border-color: #16a34a; background: #f0fdf4; }
+    .tier-card { background: #f9f9f9; border-color: #ddd; }
+    .surface, .code-block, .data-grid { background: #f9f9f9; border-color: #ddd; }
+    .accent-line { background: #16a34a; }
+    .brand { color: #16a34a; }
+    .closing-icon { background: #f0fdf4; border-color: #16a34a; color: #16a34a; }
+    var { --accent-glow: #f0fdf4; }
+  }
+
+  /* Keyboard hint */
+  .hint {
+    position: fixed;
+    bottom: 16px;
+    left: 32px;
+    font-size: 0.75rem;
+    color: #444;
+    z-index: 100;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .hint kbd {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    margin: 0 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide title-center active" data-slide="0">
+    <div class="brand">Xylem</div>
+    <h1>Prove Without Sharing</h1>
+    <p class="subtitle">Custom Business Logic on Aadhaar VC<br>using Zero-Knowledge Proofs</p>
+    <div class="accent-line"></div>
+    <div class="tags">
+      <span class="tag green">Fintech Sector</span>
+      <span class="tag green">Post-Quantum (ZK-STARKs)</span>
+      <span class="tag">DPDP Act 2023</span>
+      <span class="tag">Aadhaar VC ID'athon</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: The Problem -->
+  <div class="slide" data-slide="1">
+    <div class="slide-label">The Problem</div>
+    <h2>Aadhaar VC gives us selective disclosure.<br>But businesses need more than yes/no claims.</h2>
+    <div class="accent-line"></div>
+    <p class="lead" style="margin-bottom: 24px;">
+      UIDAI's Aadhaar VC is a major step forward &mdash; users control what to share, and <span class="highlight">isAdult</span> avoids revealing DOB. But real business decisions aren't that simple.
+    </p>
+    <ul class="bullets">
+      <li><strong>No custom thresholds</strong> &mdash; A lending platform needs "age 25-55 AND income above 5 lakhs." There's no pre-computed claim for every possible business condition.</li>
+      <li><strong>No duplicate detection</strong> &mdash; Detecting duplicate loan applications across platforms requires a shared identifier. SD-JWT produces no linkable, non-reversible token.</li>
+      <li><strong>No cross-source proofs</strong> &mdash; Business rules combine Aadhaar + ITR + credit score. No single authority builds cross-credential verification.</li>
+    </ul>
+  </div>
+
+  <!-- SLIDE 3: The Solution -->
+  <div class="slide" data-slide="2">
+    <div class="slide-label">The Solution</div>
+    <h2>Three Tiers of Zero-Knowledge Proofs</h2>
+    <div class="accent-line"></div>
+    <p style="margin-bottom: 4px;">A ZK proof engine on the user's device. Credentials in, boolean out. Private data never leaves.</p>
+    <div class="tiers">
+      <div class="tier-card">
+        <div class="tier-label">Tier 1</div>
+        <h3>Customizable Proofs</h3>
+        <p>Single field, custom threshold. Unlike UIDAI's fixed <strong>isAdult</strong>, the threshold is configurable.</p>
+        <div class="tier-example">"Age &ge; 25" for home loan<br>"Age 30-45" for insurance</div>
+      </div>
+      <div class="tier-card">
+        <div class="tier-label">Tier 2</div>
+        <h3>Composite Proofs</h3>
+        <p>Multiple Aadhaar VC fields in a single proof. One source, multiple conditions.</p>
+        <div class="tier-example">"Age &ge; 25 AND resident of Maharashtra"<br>"Valid Aadhaar AND age &le; 25 AND from UP"</div>
+      </div>
+      <div class="tier-card">
+        <div class="tier-label">Tier 3</div>
+        <h3>Multi-Source Proofs</h3>
+        <p>Aadhaar + ITR + Credit Bureau in one proof. No single authority can build this.</p>
+        <div class="tier-example">"Age 25-55 AND income 5L-50L<br>AND credit score &ge; 700"</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: How It Works -->
+  <div class="slide" data-slide="3">
+    <div class="slide-label">How It Works</div>
+    <h2>Aadhaar VC + Multi-Source Flow</h2>
+    <div class="accent-line"></div>
+    <div class="flow">
+      <div class="flow-node">
+        <div class="flow-label">Issuers</div>
+        <div class="flow-title">Credential Sources</div>
+        <div class="flow-items">
+          Aadhaar VC <span class="dim">(UIDAI)</span><br>
+          ITR Data <span class="dim">(IT Dept)</span><br>
+          Credit Score <span class="dim">(CIBIL)</span>
+        </div>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-node device">
+        <div class="flow-label">Holder</div>
+        <div class="flow-title">User's Device</div>
+        <div class="flow-items">
+          All private inputs stay here<br>
+          <span class="accent-text">ZK-STARK circuit runs locally</span><br>
+          Outputs: proof + nullifier
+        </div>
+      </div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-node">
+        <div class="flow-label">Verifier</div>
+        <div class="flow-title">NBFC / Platform</div>
+        <div class="flow-items">
+          Verifies proof mathematically<br>
+          Checks nullifier for duplicates<br>
+          <span class="accent-text">Stores: ZERO personal data</span>
+        </div>
+      </div>
+    </div>
+    <ol class="numbered" style="margin-top: 24px;">
+      <li>User holds credentials from multiple authorities on their device</li>
+      <li>ZK-STARK circuit verifies each credential's signature AND proves the business condition</li>
+      <li>Only the proof crosses the wire &mdash; all PII stays on device</li>
+      <li>Deterministic nullifier enables cross-platform duplicate detection without PII</li>
+    </ol>
+  </div>
+
+  <!-- SLIDE 5: Post-Quantum -->
+  <div class="slide" data-slide="4">
+    <div class="slide-label">Post-Quantum Security</div>
+    <h2>Why ZK-STARKs?</h2>
+    <div class="accent-line"></div>
+    <p class="lead" style="margin-bottom: 24px;">UIDAI's Aadhaar VC uses RS256 (RSA) &mdash; a quantum-vulnerable signing scheme.<br>Xylem's proof layer is designed to <span class="highlight">survive quantum computing</span>.</p>
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Property</th>
+          <th>UIDAI SD-JWT (RS256)</th>
+          <th>Xylem (ZK-STARKs)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Quantum-resistant</td>
+          <td class="no">No (RSA broken by Shor's)</td>
+          <td class="yes">Yes (hash-based)</td>
+        </tr>
+        <tr>
+          <td>Trusted setup</td>
+          <td class="dim">N/A</td>
+          <td class="yes">Not needed (transparent)</td>
+        </tr>
+        <tr>
+          <td>Security basis</td>
+          <td>RSA factoring</td>
+          <td class="yes">SHA-256 / BLAKE3 hashes</td>
+        </tr>
+        <tr>
+          <td>When quantum arrives</td>
+          <td class="no">Signatures can be forged</td>
+          <td class="yes">Proofs remain valid</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin-top: 20px;">ZKP security comes from <strong>mathematics, not secrecy</strong>. The circuit runs client-side &mdash; algorithm is public by design. Anyone can see how the proof is generated. No one can forge a proof without private inputs.</p>
+  </div>
+
+  <!-- SLIDE 6: Data Handling -->
+  <div class="slide" data-slide="5">
+    <div class="slide-label">Data Handling & Deployment</div>
+    <h2>What the verifier stores: nothing personal.</h2>
+    <div class="accent-line"></div>
+    <div class="two-col">
+      <div>
+        <div class="data-grid">
+          <div class="dg-cell dg-header">Data</div>
+          <div class="dg-cell dg-header" style="text-align:center">Stored?</div>
+          <div class="dg-cell dg-label">Aadhaar Number</div>
+          <div class="dg-cell dg-stored no">No</div>
+          <div class="dg-cell dg-label">Date of Birth / Income</div>
+          <div class="dg-cell dg-stored no">No</div>
+          <div class="dg-cell dg-label">Name / Address</div>
+          <div class="dg-cell dg-stored no">No</div>
+          <div class="dg-cell dg-label">Credit Score</div>
+          <div class="dg-cell dg-stored no">No</div>
+          <div class="dg-cell dg-label">Cryptographic Nullifier</div>
+          <div class="dg-cell dg-stored yes">Yes</div>
+          <div class="dg-cell dg-label">Boolean Result</div>
+          <div class="dg-cell dg-stored yes">Yes</div>
+        </div>
+      </div>
+      <div>
+        <h3>Consent-driven</h3>
+        <p style="margin-bottom: 16px;">User explicitly selects which proof to generate. Chooses the circuit, approves parameters, triggers proof generation.</p>
+        <h3>Fraud detection via nullifiers</h3>
+        <p style="margin-bottom: 16px;">Same person at multiple NBFCs &rarr; same nullifier. Share nullifiers (not PII) to detect duplicates.</p>
+        <h3>Single API endpoint</h3>
+        <div class="code-block">
+          <span class="keyword">POST</span> /api/v1/verify/loan-eligibility<br>
+          <span class="comment">// Request</span><br>
+          { proof, publicSignals, nullifier }<br>
+          <span class="comment">// Response</span><br>
+          { <span class="string">eligible: true</span>, verificationId }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Closing -->
+  <div class="slide" data-slide="6">
+    <div class="slide-label">Closing</div>
+    <h2>Aadhaar VC tells you what claims exist.<br><span class="highlight">Xylem lets you compute across claims &mdash;<br>without collecting any data.</span></h2>
+    <div class="accent-line"></div>
+    <div class="closing-points">
+      <div class="closing-point">
+        <div class="closing-icon">1</div>
+        <p><strong>Custom business logic</strong> &mdash; configurable thresholds, range proofs, composite conditions that SD-JWT alone cannot do.</p>
+      </div>
+      <div class="closing-point">
+        <div class="closing-icon">2</div>
+        <p><strong>Multi-source composite proofs</strong> &mdash; Aadhaar + ITR + credit bureau in one proof. No single authority can build this.</p>
+      </div>
+      <div class="closing-point">
+        <div class="closing-icon">3</div>
+        <p><strong>Nullifier-based fraud detection</strong> &mdash; cross-platform duplicate detection with zero PII database.</p>
+      </div>
+    </div>
+    <p style="font-size: 1.2rem; color: var(--text); margin-bottom: 20px;">
+      Post-quantum by design. Client-side by architecture. DPDP compliant by mathematics.
+    </p>
+    <div style="display: flex; gap: 32px; align-items: center; flex-wrap: wrap;">
+      <div>
+        <h3 style="margin-bottom: 4px;">Working prototype</h3>
+        <p>Three ZK circuits, client-side proof generation, nullifier tracking</p>
+      </div>
+      <div>
+        <h3 style="margin-bottom: 4px;">What we need</h3>
+        <p>Aadhaar VC sandbox access + ITR API access</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom progress bar -->
+<div class="bottom-bar">
+  <div class="progress" id="progress"></div>
+</div>
+
+<!-- Slide number -->
+<div class="slide-num" id="slideNum">1 / 7</div>
+
+<!-- Keyboard hint -->
+<div class="hint">
+  <kbd>&larr;</kbd> <kbd>&rarr;</kbd> navigate &nbsp;&middot;&nbsp; <kbd>F</kbd> fullscreen &nbsp;&middot;&nbsp; <kbd>Ctrl+P</kbd> export PDF
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  function goTo(n) {
+    if (n < 0 || n >= total) return;
+    slides.forEach((s, i) => {
+      s.classList.remove('active', 'prev');
+      if (i < n) s.classList.add('prev');
+    });
+    current = n;
+    slides[current].classList.add('active');
+    document.getElementById('progress').style.width = ((current + 1) / total * 100) + '%';
+    document.getElementById('slideNum').textContent = (current + 1) + ' / ' + total;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(current - 1); }
+    if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+    if (e.key === 'End') { e.preventDefault(); goTo(total - 1); }
+    if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  // Touch support
+  let touchX = 0;
+  document.addEventListener('touchstart', e => touchX = e.touches[0].clientX);
+  document.addEventListener('touchend', e => {
+    const diff = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(diff) > 50) diff < 0 ? goTo(current + 1) : goTo(current - 1);
+  });
+
+  // Click navigation (left/right half)
+  document.addEventListener('click', e => {
+    if (e.target.closest('.hint, .slide-num')) return;
+    e.clientX > window.innerWidth / 2 ? goTo(current + 1) : goTo(current - 1);
+  });
+
+  // Init
+  goTo(0);
+</script>
+
+</body>
+</html>
