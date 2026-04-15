@@ -40,12 +40,56 @@ export async function getDb() {
   return db;
 }
 
-function saveDb() {
-  if (db) {
+// Async persistence strategy:
+// sql.js is in-memory and requires writing the entire database file on every
+// mutation. Doing that in the request path adds 500ms+ per verify on slow
+// disks. Instead, every mutation marks the DB "dirty" and a background
+// interval flushes to disk every 2 seconds. A graceful shutdown handler
+// flushes the final state. For demo workloads the worst-case data loss
+// window is 2 seconds, which is acceptable.
+let dirty = false;
+let flushTimer = null;
+const FLUSH_INTERVAL_MS = 2000;
+
+function flushToDisk() {
+  if (!db || !dirty) return;
+  dirty = false;
+  try {
     const data = db.export();
-    const buffer = Buffer.from(data);
-    writeFileSync(DB_PATH, buffer);
+    writeFileSync(DB_PATH, Buffer.from(data));
+  } catch (err) {
+    console.error('DB flush failed:', err.message);
+    dirty = true; // retry on next tick
   }
+}
+
+function startFlushTimer() {
+  if (flushTimer) return;
+  flushTimer = setInterval(flushToDisk, FLUSH_INTERVAL_MS);
+  // Flush on process exit so the final few writes are not lost
+  const shutdown = () => {
+    if (flushTimer) clearInterval(flushTimer);
+    flushToDisk();
+    process.exit(0);
+  };
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
+  process.once('beforeExit', flushToDisk);
+}
+
+function saveDb() {
+  // Mark dirty and let the background timer persist. This returns
+  // synchronously with zero disk I/O in the request path.
+  dirty = true;
+  if (!flushTimer) startFlushTimer();
+}
+
+// Synchronous flush for initialization paths that need the file to exist
+function saveDbSync() {
+  if (!db) return;
+  const data = db.export();
+  writeFileSync(DB_PATH, Buffer.from(data));
+  dirty = false;
 }
 
 export async function initializeDatabase() {
@@ -113,7 +157,10 @@ export async function initializeDatabase() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_credentials_commitment ON credentials(commitment)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_verification_requests_status ON verification_requests(status)`);
 
-  saveDb();
+  // Persist the schema synchronously so the file exists on first boot,
+  // then start the background flush timer for all subsequent writes.
+  saveDbSync();
+  startFlushTimer();
   console.log('Database initialized successfully');
   return db;
 }

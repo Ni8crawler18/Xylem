@@ -496,7 +496,7 @@ function UserDashboard() {
 
             {/* STEP 1 */}
             {step === 1 && (
-              <div className="card max-w-3xl">
+              <div className="card">
                 <div className="text-xs text-gray-500 font-mono mb-3">// credential_issuer</div>
                 <div className="grid md:grid-cols-2 gap-3 mb-6">
                   {ISSUERS.map(issuer => (
@@ -728,7 +728,7 @@ function UserDashboard() {
 
             {/* STEP 2 */}
             {step === 2 && credential && (
-              <div className="card max-w-3xl">
+              <div className="card">
                 <div className="card-green mb-6">
                   <div className="flex items-center">
                     <CheckCircle className="h-5 w-5 text-[#5B9A5B] mr-2" />
@@ -791,7 +791,7 @@ function UserDashboard() {
 
             {/* STEP 3 */}
             {step === 3 && proofBundle && presentationPayload && (
-              <div className="max-w-3xl">
+              <div>
                 <div className="card">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center">
@@ -885,7 +885,7 @@ function UserDashboard() {
 
         {/* HISTORY TAB */}
         {activeTab === 'history' && (
-          <div className="max-w-4xl">
+          <div>
             {history.length === 0 ? (
               <div className="card text-center py-16">
                 <Clock className="h-10 w-10 text-gray-600 mx-auto mb-3" />
