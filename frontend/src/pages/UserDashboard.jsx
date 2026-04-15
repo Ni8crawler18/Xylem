@@ -811,7 +811,7 @@ function UserDashboard() {
                       <p className="text-xs text-gray-500 text-center mt-3 leading-relaxed">
                         Scan from verifier device.
                         {presentationId
-                          ? ' Payload is held on the server for 10 minutes.'
+                          ? ' Payload is held on the server for 3 minutes.'
                           : ' QR carries the full inline payload (server upload unavailable).'}
                       </p>
                     </div>

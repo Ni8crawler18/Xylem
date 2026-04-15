@@ -200,9 +200,9 @@ router.post('/state', async (req, res, next) => {
  * Body: { proofs: [{ type, proof, publicSignals, nullifier }, ...] }
  */
 // In-memory presentation store so the QR only needs to carry a short ID
-// rather than a full ~2KB proof payload. Entries auto-expire after 10 minutes.
+// rather than a full ~2KB proof payload. Entries auto-expire after 3 minutes.
 const presentationStore = new Map();
-const PRESENTATION_TTL_MS = 10 * 60 * 1000;
+const PRESENTATION_TTL_MS = 3 * 60 * 1000;
 
 function randomShortId() {
   return Math.random().toString(36).slice(2, 10).toUpperCase();
