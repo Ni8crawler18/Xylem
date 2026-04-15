@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import {
   Shield, CheckCircle, XCircle, Loader2, FileCode,
-  LogOut, User, AlertCircle, History, Terminal, Download
+  LogOut, User, AlertCircle, History, Terminal, Download,
+  Clock, Camera
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../lib/api'
+import QrScanner from '../components/QrScanner'
 
 function VerifierDashboard() {
   const { user, logout } = useAuth()
@@ -15,6 +17,7 @@ function VerifierDashboard() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [history, setHistory] = useState([])
+  const [scannerOpen, setScannerOpen] = useState(false)
 
   useEffect(() => {
     loadHistory()
@@ -29,13 +32,15 @@ function VerifierDashboard() {
     }
   }
 
-  const verifyProof = async () => {
+  const verifyProof = () => verifyProofWithInput(proofInput)
+
+  const verifyProofWithInput = async (rawInput) => {
     setLoading(true)
     setError(null)
     setVerificationResult(null)
 
     try {
-      const proofData = JSON.parse(proofInput)
+      const proofData = JSON.parse(rawInput)
 
       // Two accepted shapes:
       //  A) Presentation envelope: { version, proofs: [{type, proof, publicSignals, nullifier}, ...] }
@@ -350,21 +355,30 @@ function VerifierDashboard() {
             {/* Main Panel */}
             <div className="lg:col-span-2 space-y-6">
               <div className="card">
-                <div className="flex items-center mb-6">
-                  <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center mr-3">
-                    <FileCode className="h-5 w-5 text-white" />
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center mr-3">
+                      <FileCode className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-white font-mono">proof_input</h2>
+                      <p className="text-xs text-gray-500">Scan QR from prover or paste ZK proof JSON</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-white font-mono">proof_input</h2>
-                    <p className="text-xs text-gray-500">Paste ZK proof JSON</p>
-                  </div>
+                  <button
+                    onClick={() => setScannerOpen(true)}
+                    className="btn-secondary inline-flex items-center px-4 py-2 text-sm"
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Scan QR
+                  </button>
                 </div>
 
                 <textarea
                   value={proofInput}
                   onChange={(e) => setProofInput(e.target.value)}
                   className="input font-mono text-sm h-48 mb-4 text-[#5B9A5B]"
-                  placeholder='{"proof": {...}, "publicSignals": [...], "nullifier": "...", "verificationType": "age"}'
+                  placeholder='{"version":"1.0","proofs":[{"type":"age","proof":{...},"publicSignals":[...],"nullifier":"..."}]}'
                 />
 
                 {error && (
@@ -582,6 +596,22 @@ function VerifierDashboard() {
           </div>
         )}
       </div>
+
+      {scannerOpen && (
+        <QrScanner
+          onResult={(text) => {
+            setScannerOpen(false)
+            setProofInput(text)
+            setError(null)
+            setVerificationResult(null)
+            // Auto-verify after populating
+            setTimeout(() => {
+              verifyProofWithInput(text)
+            }, 50)
+          }}
+          onClose={() => setScannerOpen(false)}
+        />
+      )}
     </div>
   )
 }

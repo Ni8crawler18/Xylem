@@ -789,33 +789,14 @@ function UserDashboard() {
                           className="text-[#5B9A5B] hover:text-[#7CB87C] flex items-center text-xs font-mono"
                         >
                           {copied
-                            ? <><CheckCircle className="h-3 w-3 mr-1" /> copied (full payload)</>
-                            : <><Copy className="h-3 w-3 mr-1" /> copy full JSON</>
+                            ? <><CheckCircle className="h-3 w-3 mr-1" /> copied</>
+                            : <><Copy className="h-3 w-3 mr-1" /> copy</>
                           }
                         </button>
                       </div>
-                      <pre className="bg-black border border-white/10 rounded-lg p-3 text-xs font-mono text-[#5B9A5B] overflow-auto max-h-56">
-{JSON.stringify({
-  version: presentationPayload.version,
-  proofs: presentationPayload.proofs.map(p => ({
-    type: p.type,
-    proof: {
-      pi_a: [`${(p.proof.pi_a?.[0] || '').slice(0, 12)}…`, '…'],
-      pi_b: '…',
-      pi_c: '…',
-      protocol: p.proof.protocol,
-      curve: p.proof.curve
-    },
-    publicSignals: p.publicSignals.map(s => String(s).slice(0, 10) + '…'),
-    nullifier: String(p.nullifier).slice(0, 24) + '…'
-  }))
-}, null, 2)}
+                      <pre className="bg-black border border-white/10 rounded-lg p-3 text-[11px] font-mono text-[#5B9A5B] overflow-auto max-h-80 whitespace-pre">
+{JSON.stringify(presentationPayload, null, 2)}
                       </pre>
-                      <div className="text-[10px] text-gray-600 font-mono mt-2 leading-relaxed">
-                        Values above are truncated for display. The full Groth16 proof
-                        points, public signals, and nullifiers are encoded in the QR and
-                        copied by the <span className="text-[#5B9A5B]">copy</span> button.
-                      </div>
                       <div className="grid grid-cols-3 gap-2 mt-3">
                         {proofBundle.proofs.map((p, i) => (
                           <div key={i} className="bg-white/5 border border-white/10 rounded-md p-2">
