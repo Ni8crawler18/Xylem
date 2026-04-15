@@ -75,6 +75,7 @@ function UserDashboard() {
   const [selectedAttrs, setSelectedAttrs] = useState(new Set(['age']))
   const [proofBundle, setProofBundle] = useState(null)
   const [proofTiming, setProofTiming] = useState(null)
+  const [presentationId, setPresentationId] = useState(null)
   const [history, setHistory] = useState([])
   const [copied, setCopied] = useState(false)
 
@@ -209,6 +210,25 @@ function UserDashboard() {
 
       setProofBundle(bundle)
       setProofTiming(elapsed)
+
+      // Upload the presentation and keep only the short id for the QR
+      const envelope = {
+        version: '1.0',
+        proofs: bundle.proofs.map(p => ({
+          type: p.type,
+          proof: p.proof,
+          publicSignals: p.publicSignals,
+          nullifier: p.nullifier
+        }))
+      }
+      try {
+        const uploaded = await api.uploadPresentation(envelope)
+        setPresentationId(uploaded.id)
+      } catch (uploadErr) {
+        console.warn('Presentation upload failed, falling back to inline QR:', uploadErr)
+        setPresentationId(null)
+      }
+
       setHistory(prev => [{
         id: `p_${Date.now()}`,
         types: Array.from(selectedAttrs),
@@ -251,6 +271,7 @@ function UserDashboard() {
     setCredential(null)
     setProofBundle(null)
     setProofTiming(null)
+    setPresentationId(null)
     setError(null)
     setIssuerPayload(null)
     setSelectedAttrs(new Set(['age']))
@@ -770,14 +791,28 @@ function UserDashboard() {
                       <div className="flex justify-center">
                         <div className="p-4 bg-white rounded-lg">
                           <QRCodeSVG
-                            value={JSON.stringify(presentationPayload)}
-                            size={200}
-                            level="M"
+                            value={presentationId || JSON.stringify(presentationPayload)}
+                            size={260}
+                            level="H"
+                            includeMargin
                           />
                         </div>
                       </div>
-                      <p className="text-xs text-gray-500 text-center mt-3">
-                        Scan from a verifier device to consume this presentation.
+                      {presentationId && (
+                        <div className="mt-3 text-center">
+                          <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mb-1">
+                            presentation id
+                          </div>
+                          <code className="text-[#5B9A5B] font-mono text-lg tracking-widest">
+                            {presentationId}
+                          </code>
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-500 text-center mt-3 leading-relaxed">
+                        Scan from verifier device.
+                        {presentationId
+                          ? ' Payload is held on the server for 10 minutes.'
+                          : ' QR carries the full inline payload (server upload unavailable).'}
                       </p>
                     </div>
 

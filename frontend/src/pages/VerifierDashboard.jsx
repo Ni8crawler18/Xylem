@@ -599,15 +599,55 @@ function VerifierDashboard() {
 
       {scannerOpen && (
         <QrScanner
-          onResult={(text) => {
+          onResult={async (text) => {
             setScannerOpen(false)
-            setProofInput(text)
             setError(null)
             setVerificationResult(null)
-            // Auto-verify after populating
-            setTimeout(() => {
-              verifyProofWithInput(text)
-            }, 50)
+
+            const trimmed = (text || '').trim()
+
+            // Case 1: scanned a short presentation ID — fetch the full payload
+            if (/^[A-Z0-9]{6,12}$/.test(trimmed)) {
+              try {
+                setLoading(true)
+                const response = await api.fetchPresentation(trimmed)
+                const payload = JSON.stringify(
+                  { version: response.version, proofs: response.proofs },
+                  null,
+                  2
+                )
+                setProofInput(payload)
+                await verifyProofWithInput(payload)
+              } catch (err) {
+                setError(err.message || 'Failed to retrieve presentation')
+                setLoading(false)
+              }
+              return
+            }
+
+            // Case 2: scanned a presentation URL
+            const urlMatch = trimmed.match(/\/v\/([A-Z0-9]{6,12})$/i)
+            if (urlMatch) {
+              try {
+                setLoading(true)
+                const response = await api.fetchPresentation(urlMatch[1].toUpperCase())
+                const payload = JSON.stringify(
+                  { version: response.version, proofs: response.proofs },
+                  null,
+                  2
+                )
+                setProofInput(payload)
+                await verifyProofWithInput(payload)
+              } catch (err) {
+                setError(err.message || 'Failed to retrieve presentation')
+                setLoading(false)
+              }
+              return
+            }
+
+            // Case 3: scanned the raw JSON payload directly
+            setProofInput(trimmed)
+            setTimeout(() => verifyProofWithInput(trimmed), 50)
           }}
           onClose={() => setScannerOpen(false)}
         />

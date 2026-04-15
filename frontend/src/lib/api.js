@@ -65,6 +65,13 @@ export const api = {
     body: JSON.stringify({ proofs, verifierName })
   }),
 
+  uploadPresentation: (presentation) => request('/verify/presentation', {
+    method: 'POST',
+    body: JSON.stringify(presentation)
+  }),
+
+  fetchPresentation: (id) => request(`/verify/presentation/${id}`, { method: 'GET' }),
+
   generateProof: (type, privateInputs, publicInputs) => request('/verify/generate-proof', {
     method: 'POST',
     body: JSON.stringify({ type, privateInputs, publicInputs })

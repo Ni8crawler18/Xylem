@@ -199,6 +199,81 @@ router.post('/state', async (req, res, next) => {
  * verifies each, checks all nullifiers unique, stores as a single composite record.
  * Body: { proofs: [{ type, proof, publicSignals, nullifier }, ...] }
  */
+// In-memory presentation store so the QR only needs to carry a short ID
+// rather than a full ~2KB proof payload. Entries auto-expire after 10 minutes.
+const presentationStore = new Map();
+const PRESENTATION_TTL_MS = 10 * 60 * 1000;
+
+function randomShortId() {
+  return Math.random().toString(36).slice(2, 10).toUpperCase();
+}
+
+function cleanupPresentations() {
+  const now = Date.now();
+  for (const [id, entry] of presentationStore.entries()) {
+    if (entry.expiresAt < now) presentationStore.delete(id);
+  }
+}
+
+/**
+ * POST /api/v1/verify/presentation
+ * Stores a presentation payload and returns a short ID. The short ID is
+ * what the prover encodes into its QR code, so the QR stays small enough
+ * to scan reliably even at arm's length.
+ */
+router.post('/presentation', (req, res, next) => {
+  try {
+    cleanupPresentations();
+    const { version, proofs } = req.body || {};
+    if (!Array.isArray(proofs) || proofs.length === 0) {
+      return res.status(400).json({
+        error: true,
+        message: 'Missing or empty proofs array'
+      });
+    }
+    let id = randomShortId();
+    while (presentationStore.has(id)) id = randomShortId();
+
+    const now = Date.now();
+    presentationStore.set(id, {
+      version: version || '1.0',
+      proofs,
+      createdAt: now,
+      expiresAt: now + PRESENTATION_TTL_MS
+    });
+
+    res.json({
+      success: true,
+      id,
+      expiresAt: new Date(now + PRESENTATION_TTL_MS).toISOString()
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/v1/verify/presentation/:id
+ * Returns the stored presentation payload by short ID.
+ */
+router.get('/presentation/:id', (req, res) => {
+  cleanupPresentations();
+  const entry = presentationStore.get(req.params.id.toUpperCase());
+  if (!entry) {
+    return res.status(404).json({
+      error: true,
+      message: 'Presentation not found or expired'
+    });
+  }
+  res.json({
+    success: true,
+    version: entry.version,
+    proofs: entry.proofs,
+    createdAt: new Date(entry.createdAt).toISOString(),
+    expiresAt: new Date(entry.expiresAt).toISOString()
+  });
+});
+
 router.post('/composite', async (req, res, next) => {
   const startTime = Date.now();
   try {
