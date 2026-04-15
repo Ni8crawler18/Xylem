@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 Aadhaar Verifiable Credential (SD-JWT) Extractor

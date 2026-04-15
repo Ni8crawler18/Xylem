@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
 import {
   Shield, CheckCircle, XCircle, Loader2, FileCode,
-  Clock, LogOut, User, AlertCircle, History, Terminal,
-  QrCode, Copy, RefreshCw, Download
+  LogOut, User, AlertCircle, History, Terminal, Download
 } from 'lucide-react'
-import { QRCodeSVG } from 'qrcode.react'
 import { jsPDF } from 'jspdf'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../lib/api'
@@ -18,36 +16,9 @@ function VerifierDashboard() {
   const [error, setError] = useState(null)
   const [history, setHistory] = useState([])
 
-  // QR Code state
-  const [qrRequest, setQrRequest] = useState(null)
-  const [qrType, setQrType] = useState('age')
-  const [qrLoading, setQrLoading] = useState(false)
-  const [qrPolling, setQrPolling] = useState(false)
-  const [copied, setCopied] = useState(false)
-
   useEffect(() => {
     loadHistory()
   }, [])
-
-  // Poll for QR request status
-  useEffect(() => {
-    let interval
-    if (qrRequest && qrRequest.status === 'pending' && qrPolling) {
-      interval = setInterval(async () => {
-        try {
-          const response = await api.getVerificationRequest(qrRequest.requestId)
-          if (response.request.status !== 'pending') {
-            setQrRequest(prev => ({ ...prev, ...response.request, status: response.request.status }))
-            setQrPolling(false)
-            loadHistory()
-          }
-        } catch (err) {
-          console.error('Polling error:', err)
-        }
-      }, 2000)
-    }
-    return () => clearInterval(interval)
-  }, [qrRequest, qrPolling])
 
   const loadHistory = async () => {
     try {
@@ -140,39 +111,6 @@ function VerifierDashboard() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const createQrRequest = async () => {
-    setQrLoading(true)
-    setError(null)
-    try {
-      const response = await api.createVerificationRequest(qrType, user?.name || 'Verifier')
-      setQrRequest({
-        requestId: response.requestId,
-        verificationType: response.verificationType,
-        expiresAt: response.expiresAt,
-        qrData: response.qrData,
-        status: 'pending'
-      })
-      setQrPolling(true)
-    } catch (err) {
-      setError(err.message || 'Failed to create verification request')
-    } finally {
-      setQrLoading(false)
-    }
-  }
-
-  const copyRequestId = () => {
-    if (qrRequest?.requestId) {
-      navigator.clipboard.writeText(qrRequest.requestId)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
-
-  const resetQrRequest = () => {
-    setQrRequest(null)
-    setQrPolling(false)
   }
 
   const exportHistoryPDF = () => {
@@ -332,13 +270,6 @@ function VerifierDashboard() {
           >
             <Shield className="h-5 w-5 mr-3" />
             Verify Proof
-          </button>
-          <button
-            onClick={() => setActiveTab('qrcode')}
-            className={activeTab === 'qrcode' ? 'sidebar-link-active w-full' : 'sidebar-link w-full'}
-          >
-            <QrCode className="h-5 w-5 mr-3" />
-            QR Verify
           </button>
           <button
             onClick={() => setActiveTab('history')}
@@ -583,129 +514,6 @@ function VerifierDashboard() {
                 </p>
               </div>
             </div>
-          </div>
-        )}
-
-        {activeTab === 'qrcode' && (
-          <div className="max-w-2xl">
-            {!qrRequest ? (
-              <div className="card">
-                <div className="text-xs text-gray-500 font-mono mb-4">// Create verification request</div>
-                <h2 className="text-lg font-semibold text-white mb-6">Generate QR Code</h2>
-
-                <div className="mb-6">
-                  <label className="label font-mono text-xs">verification_type</label>
-                  <select
-                    value={qrType}
-                    onChange={(e) => setQrType(e.target.value)}
-                    className="input font-mono"
-                  >
-                    <option value="age">age_verification</option>
-                    <option value="aadhaar">aadhaar_validity</option>
-                    <option value="state">state_verification</option>
-                  </select>
-                </div>
-
-                <button
-                  onClick={createQrRequest}
-                  disabled={qrLoading}
-                  className="btn-primary w-full flex items-center justify-center"
-                >
-                  {qrLoading ? (
-                    <>
-                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <QrCode className="h-5 w-5 mr-2" />
-                      Generate QR Code
-                    </>
-                  )}
-                </button>
-              </div>
-            ) : (
-              <div className="card">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <div className="text-xs text-gray-500 font-mono mb-1">// {qrRequest.verificationType}_verification</div>
-                    <h2 className="text-lg font-semibold text-white">Scan to Verify</h2>
-                  </div>
-                  <div className={`px-3 py-1 rounded-full text-xs font-mono ${
-                    qrRequest.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                    qrRequest.status === 'completed' ? 'bg-[#5B9A5B]/20 text-[#5B9A5B]' :
-                    'bg-red-500/20 text-red-400'
-                  }`}>
-                    {qrRequest.status}
-                  </div>
-                </div>
-
-                {qrRequest.status === 'pending' && (
-                  <>
-                    <div className="flex justify-center mb-6">
-                      <div className="p-4 bg-white rounded-lg">
-                        <QRCodeSVG
-                          value={qrRequest.qrData}
-                          size={200}
-                          level="M"
-                          includeMargin={false}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-center space-x-2 mb-4">
-                      <code className="text-[#5B9A5B] font-mono text-lg">{qrRequest.requestId}</code>
-                      <button onClick={copyRequestId} className="text-gray-500 hover:text-white">
-                        {copied ? <CheckCircle className="h-4 w-4 text-[#5B9A5B]" /> : <Copy className="h-4 w-4" />}
-                      </button>
-                    </div>
-
-                    <p className="text-center text-gray-500 text-sm mb-4">
-                      User can scan QR or enter code <span className="text-[#5B9A5B] font-mono">{qrRequest.requestId}</span>
-                    </p>
-
-                    {qrPolling && (
-                      <div className="flex items-center justify-center text-gray-500 text-sm">
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Waiting for proof...
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {qrRequest.status === 'completed' && (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 rounded-full bg-[#5B9A5B]/20 flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle className="h-8 w-8 text-[#5B9A5B]" />
-                    </div>
-                    <h3 className="text-xl font-bold text-[#5B9A5B] mb-2">Verified!</h3>
-                    <p className="text-gray-500 text-sm">Proof successfully verified</p>
-                  </div>
-                )}
-
-                {(qrRequest.status === 'failed' || qrRequest.status === 'expired') && (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
-                      <XCircle className="h-8 w-8 text-red-400" />
-                    </div>
-                    <h3 className="text-xl font-bold text-red-400 mb-2">
-                      {qrRequest.status === 'expired' ? 'Expired' : 'Failed'}
-                    </h3>
-                    <p className="text-gray-500 text-sm">
-                      {qrRequest.status === 'expired' ? 'Request has expired' : 'Verification failed'}
-                    </p>
-                  </div>
-                )}
-
-                <button
-                  onClick={resetQrRequest}
-                  className="btn-secondary w-full mt-6"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  New Request
-                </button>
-              </div>
-            )}
           </div>
         )}
 

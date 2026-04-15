@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import {
-  CheckCircle, Copy, Loader2, ArrowRight, ArrowLeft, Clock,
-  LogOut, User, AlertCircle, Upload, Shield, FileText,
-  Calendar, MapPin, Fingerprint, Download
+  Shield, CheckCircle, Copy, Loader2, ArrowRight, ArrowLeft,
+  Clock, LogOut, User, AlertCircle, Upload, FileText,
+  Calendar, MapPin, Fingerprint, Download, History
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { jsPDF } from 'jspdf'
@@ -62,12 +61,12 @@ const INITIAL_FORM = {
 function UserDashboard() {
   const { user, logout } = useAuth()
 
-  const [tab, setTab] = useState('wallet')  // wallet | history
-  const [step, setStep] = useState(1)        // 1: input, 2: attributes, 3: output
+  const [activeTab, setActiveTab] = useState('wallet')  // wallet | history
+  const [step, setStep] = useState(1)
   const [issuerId, setIssuerId] = useState('manual')
   const [formData, setFormData] = useState(INITIAL_FORM)
-  const [issuerPayload, setIssuerPayload] = useState(null)  // { claims, status }
-  const [jwtInput, setJwtInput] = useState('')  // pasted SD-JWT
+  const [issuerPayload, setIssuerPayload] = useState(null)
+  const [jwtInput, setJwtInput] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -79,14 +78,11 @@ function UserDashboard() {
   const [history, setHistory] = useState([])
   const [copied, setCopied] = useState(false)
 
+  const activeIssuer = ISSUERS.find(i => i.id === issuerId)
 
-  // ────────────────────────────────────────────────────────────────────
-  // STEP 1 — ISSUER SELECTION & CREDENTIAL FETCH
   // ────────────────────────────────────────────────────────────────────
 
   const onField = (e) => setFormData({ ...formData, [e.target.name]: e.target.value })
-
-  const activeIssuer = ISSUERS.find(i => i.id === issuerId)
 
   const selectIssuer = (id) => {
     setIssuerId(id)
@@ -107,12 +103,9 @@ function UserDashboard() {
           if (!resp.ok) throw new Error('Sample SD-JWT not available')
           raw = (await resp.text()).trim()
         }
-
-        // Call backend Python extractor
         const extracted = await api.extractJwt(raw)
         const claims = extracted.claims || {}
 
-        // Determine which required fields were not disclosed by the issuer
         const missing = []
         if (!claims.name) missing.push('name')
         if (!claims.dateOfBirth) missing.push('dateOfBirth')
@@ -127,27 +120,8 @@ function UserDashboard() {
             disclosed: extracted.disclosuresCount,
             hidden: extracted.hiddenClaimsCount,
             algorithm: extracted.header?.alg || 'RS256',
-            issuer: extracted.payload?.iss || 'unknown',
-            kid: extracted.header?.kid || 'unknown',
             holderBinding: !!extracted.payload?.cnf?.jwk,
-            holderKeyType: extracted.payload?.cnf?.jwk?.crv || null,
-            extractor: 'python3 scripts/extract_aadhaar_jwt.py'
-          }
-        })
-      } else {
-        // DigiLocker-style OAuth flow simulation for all non-SD-JWT issuers
-        await new Promise(res => setTimeout(res, 900))
-        setIssuerPayload({
-          status: 'ready',
-          claims: {
-            name: 'Venkatesh R',
-            dateOfBirth: '1998-05-15',
-            aadhaarNumber: '234567890123',
-            pincode: '636705'
-          },
-          metadata: {
-            consentScope: 'identity.read',
-            authMethod: 'oauth2'
+            holderKeyType: extracted.payload?.cnf?.jwk?.crv || null
           }
         })
       }
@@ -179,8 +153,6 @@ function UserDashboard() {
     }
   }
 
-  // ────────────────────────────────────────────────────────────────────
-  // STEP 2 — ATTRIBUTE SELECTION & PROOF GENERATION
   // ────────────────────────────────────────────────────────────────────
 
   const toggleAttr = (id) => {
@@ -254,88 +226,6 @@ function UserDashboard() {
   }
 
   // ────────────────────────────────────────────────────────────────────
-  // HISTORY — PDF EXPORT
-  // ────────────────────────────────────────────────────────────────────
-
-  const exportHistoryItemPdf = (item) => {
-    const doc = new jsPDF()
-
-    // Header
-    doc.setFontSize(22)
-    doc.setTextColor(91, 154, 91)
-    doc.text('Eigenparse', 20, 22)
-
-    doc.setFontSize(13)
-    doc.setTextColor(60)
-    doc.text('Proof Presentation Receipt', 20, 32)
-
-    doc.setDrawColor(200)
-    doc.line(20, 38, 190, 38)
-
-    doc.setFontSize(10)
-    let y = 50
-
-    const field = (label, value) => {
-      doc.setTextColor(120)
-      doc.text(label, 20, y)
-      doc.setTextColor(40)
-      doc.text(String(value), 70, y)
-      y += 8
-    }
-
-    field('Mode', item.types.length > 1 ? 'Composite' : 'Single Attribute')
-    field('Attributes', item.types.join(', '))
-    field('Generated', new Date(item.generatedAt).toLocaleString())
-    field('Proof Time', `${item.proofTimeMs} ms`)
-    field('Commitment', `${item.commitment?.slice(0, 36) || 'n/a'}...`)
-    field('Proof System', 'Groth16 / BN254')
-
-    y += 4
-    doc.setDrawColor(230)
-    doc.line(20, y, 190, y)
-    y += 10
-
-    doc.setFontSize(11)
-    doc.setTextColor(91, 154, 91)
-    doc.text('Nullifiers', 20, y)
-    y += 8
-    doc.setFontSize(8)
-    doc.setTextColor(80)
-    for (const p of item.bundle?.proofs || []) {
-      const nullifierStr = p.nullifier || 'n/a'
-      doc.text(`${p.type}:`, 20, y)
-      // Wrap long nullifier
-      const chunks = nullifierStr.match(/.{1,70}/g) || [nullifierStr]
-      chunks.forEach((chunk, i) => {
-        doc.text(chunk, 38, y + i * 5)
-      })
-      y += Math.max(8, chunks.length * 5 + 3)
-    }
-
-    // Note
-    y = Math.max(y, 200)
-    doc.setDrawColor(91, 154, 91)
-    doc.setFillColor(245, 250, 245)
-    doc.roundedRect(20, y, 170, 32, 3, 3, 'FD')
-
-    doc.setFontSize(10)
-    doc.setTextColor(91, 154, 91)
-    doc.text('Zero-Knowledge Proof', 26, y + 9)
-    doc.setFontSize(8)
-    doc.setTextColor(80)
-    doc.text('Generated client-side with Groth16 ZK-SNARKs. Private inputs never', 26, y + 17)
-    doc.text('transmitted. Verifier stores only nullifier hash and boolean result.', 26, y + 23)
-
-    doc.setFontSize(7)
-    doc.setTextColor(150)
-    doc.text('Eigenparse · Privacy-Preserving KYC', 20, 285)
-
-    doc.save(`eigenparse-proof-${item.types.join('-')}-${Date.now()}.pdf`)
-  }
-
-  // ────────────────────────────────────────────────────────────────────
-  // STEP 3 — OUTPUT (QR / COPY)
-  // ────────────────────────────────────────────────────────────────────
 
   const presentationPayload = proofBundle
     ? {
@@ -362,10 +252,89 @@ function UserDashboard() {
     setProofBundle(null)
     setProofTiming(null)
     setError(null)
-    setSourceStatus(null)
+    setIssuerPayload(null)
     setSelectedAttrs(new Set(['age']))
     setFormData(INITIAL_FORM)
+    setJwtInput('')
   }
+
+  // ────────────────────────────────────────────────────────────────────
+  // HISTORY PDF EXPORT
+  // ────────────────────────────────────────────────────────────────────
+
+  const exportHistoryItemPdf = (item) => {
+    const doc = new jsPDF()
+
+    doc.setFontSize(20)
+    doc.setTextColor(91, 154, 91)
+    doc.text('Eigenparse', 20, 20)
+
+    doc.setFontSize(12)
+    doc.setTextColor(100)
+    doc.text('Proof Presentation Receipt', 20, 30)
+    doc.text(`Generated: ${new Date(item.generatedAt).toLocaleString()}`, 20, 37)
+    doc.text(`Mode: ${item.types.length > 1 ? 'Composite' : 'Single'}`, 20, 44)
+
+    doc.setDrawColor(91, 154, 91)
+    doc.setLineWidth(0.5)
+    doc.line(20, 52, 190, 52)
+
+    doc.setFontSize(10)
+    let y = 65
+
+    const field = (label, value) => {
+      doc.setTextColor(120)
+      doc.text(label, 20, y)
+      doc.setTextColor(40)
+      doc.text(String(value), 70, y)
+      y += 8
+    }
+
+    field('Attributes', item.types.join(', '))
+    field('Proof Time', `${item.proofTimeMs} ms`)
+    field('Proof System', 'Groth16 / BN254')
+    field('Commitment', `${item.commitment?.slice(0, 40) || 'n/a'}...`)
+
+    y += 4
+    doc.setDrawColor(230)
+    doc.line(20, y, 190, y)
+    y += 10
+
+    doc.setFontSize(11)
+    doc.setTextColor(91, 154, 91)
+    doc.text('Nullifiers', 20, y)
+    y += 8
+    doc.setFontSize(8)
+    doc.setTextColor(80)
+    for (const p of item.bundle?.proofs || []) {
+      const nullifierStr = p.nullifier || 'n/a'
+      doc.text(`${p.type}:`, 20, y)
+      const chunks = nullifierStr.match(/.{1,70}/g) || [nullifierStr]
+      chunks.forEach((chunk, i) => doc.text(chunk, 38, y + i * 5))
+      y += Math.max(8, chunks.length * 5 + 3)
+    }
+
+    y = Math.max(y + 10, 220)
+    doc.setDrawColor(91, 154, 91)
+    doc.setFillColor(245, 250, 245)
+    doc.roundedRect(20, y, 170, 32, 3, 3, 'FD')
+    doc.setFontSize(10)
+    doc.setTextColor(91, 154, 91)
+    doc.text('Zero-Knowledge Proof', 26, y + 9)
+    doc.setFontSize(8)
+    doc.setTextColor(80)
+    doc.text('Generated client-side with Groth16 ZK-SNARKs.', 26, y + 17)
+    doc.text('Private inputs never transmitted. Verifier sees only nullifier + boolean.', 26, y + 23)
+
+    doc.setFontSize(8)
+    doc.setTextColor(150)
+    doc.text('Generated by Eigenparse - Privacy-Preserving KYC System', 20, 280)
+    doc.text('DPDP Act 2023 Compliant', 20, 285)
+
+    doc.save(`eigenparse-proof-${item.types.join('-')}-${Date.now()}.pdf`)
+  }
+
+  // ────────────────────────────────────────────────────────────────────
 
   // ────────────────────────────────────────────────────────────────────
   // RENDER
@@ -374,606 +343,562 @@ function UserDashboard() {
   return (
     <div className="min-h-screen bg-black flex">
       {/* Sidebar */}
-      <aside className="w-60 bg-black border-r border-white/10 p-6 hidden lg:flex flex-col">
-        <Link to="/" className="flex items-center space-x-3 mb-10">
-          <img src="/logo.png" alt="Eigenparse" className="h-7 w-7" />
-          <span className="text-lg font-bold text-white">Eigenparse</span>
-        </Link>
+      <div className="w-64 bg-[#0D0D0D] border-r border-white/10 p-6 hidden lg:flex flex-col">
+        <div className="flex items-center space-x-3 mb-8">
+          <img src="/logo.png" alt="Eigenparse" className="h-8 w-8" />
+          <span className="text-xl font-bold text-white">Eigenparse</span>
+        </div>
 
-        <nav className="space-y-1 flex-1">
-          <SidebarButton active={tab === 'wallet'} onClick={() => setTab('wallet')} icon={<Shield className="h-4 w-4" />}>
+        <nav className="space-y-2 flex-1">
+          <button
+            onClick={() => setActiveTab('wallet')}
+            className={activeTab === 'wallet' ? 'sidebar-link-active w-full' : 'sidebar-link w-full'}
+          >
+            <Shield className="h-5 w-5 mr-3" />
             Wallet
-          </SidebarButton>
-          <SidebarButton active={tab === 'history'} onClick={() => setTab('history')} icon={<Clock className="h-4 w-4" />}>
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={activeTab === 'history' ? 'sidebar-link-active w-full' : 'sidebar-link w-full'}
+          >
+            <History className="h-5 w-5 mr-3" />
             History
-          </SidebarButton>
+          </button>
         </nav>
 
-        <div className="pt-5 border-t border-white/10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-md bg-[#5B9A5B]/10 border border-[#5B9A5B]/30 flex items-center justify-center">
-              <User className="h-4 w-4 text-[#5B9A5B]" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-white truncate">{user?.name}</div>
-              <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">Prover</div>
+        <div className="pt-6 border-t border-white/10">
+          <div className="p-3 bg-white/5 rounded-lg mb-4">
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-lg bg-[#5B9A5B]/20 flex items-center justify-center mr-3">
+                <User className="h-4 w-4 text-[#5B9A5B]" />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-white">{user?.name}</div>
+                <div className="text-xs text-gray-500 font-mono">PROVER</div>
+              </div>
             </div>
           </div>
           <button
             onClick={logout}
-            className="flex items-center text-gray-500 hover:text-gray-300 transition-colors text-xs w-full font-mono"
+            className="flex items-center text-gray-500 hover:text-red-400 transition-colors text-sm w-full"
           >
-            <LogOut className="h-3.5 w-3.5 mr-2" />
+            <LogOut className="h-4 w-4 mr-2" />
             Sign Out
           </button>
         </div>
-      </aside>
+      </div>
 
-      {/* Main */}
-      <main className="flex-1 p-8 overflow-y-auto">
-        <div className="max-w-4xl">
-
-          {/* Page header */}
-          <div className="mb-8">
-            <div className="text-[10px] font-mono text-[#5B9A5B] uppercase tracking-widest mb-2">
-              {tab === 'wallet' && 'Prover Wallet'}
-              {tab === 'history' && 'Proof History'}
-            </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              {tab === 'wallet' && 'Generate Proof Presentation'}
-              {tab === 'history' && 'Recent Activity'}
-            </h1>
+      {/* Main Content */}
+      <div className="flex-1 p-8 overflow-y-auto">
+        {/* Mobile Header */}
+        <div className="lg:hidden flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <img src="/logo.png" alt="Eigenparse" className="h-8 w-8" />
+            <span className="text-xl font-bold text-white">Eigenparse</span>
           </div>
+          <button onClick={logout} className="text-gray-500 hover:text-red-400">
+            <LogOut className="h-5 w-5" />
+          </button>
+        </div>
 
-          {/* WALLET TAB — MAIN 3-STEP FLOW */}
-          {tab === 'wallet' && (
-            <>
-              {/* Progress indicator */}
-              <div className="flex items-center gap-4 mb-8">
-                <StepIndicator num={1} label="Input" active={step >= 1} done={step > 1} />
-                <StepConnector done={step > 1} />
-                <StepIndicator num={2} label="Attributes" active={step >= 2} done={step > 2} />
-                <StepConnector done={step > 2} />
-                <StepIndicator num={3} label="Presentation" active={step >= 3} done={false} />
-              </div>
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="inline-flex items-center space-x-2 border border-white/10 rounded-full px-3 py-1 mb-4">
+            <span className="text-xs text-gray-500 font-mono">// {activeTab === 'wallet' ? 'prover_wallet' : 'history'}</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white">
+            {activeTab === 'wallet' ? 'Generate Proof Presentation' : 'Proof History'}
+          </h1>
+        </div>
 
-              {error && (
-                <div className="mb-6 p-4 bg-white/[0.02] border border-white/10 rounded-lg flex items-center gap-3">
-                  <AlertCircle className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  <p className="text-gray-300 text-sm">{error}</p>
-                </div>
-              )}
-
-              {/* STEP 1 — ISSUER SELECTION */}
-              {step === 1 && (
-                <div className="bg-black border border-white/10 rounded-xl p-6">
-                  <div className="mb-6">
-                    <div className="text-xs font-mono uppercase tracking-wider text-gray-500 mb-3">
-                      Credential Issuer
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-2">
-                      {ISSUERS.map(issuer => (
-                        <button
-                          key={issuer.id}
-                          onClick={() => selectIssuer(issuer.id)}
-                          className={`text-left border rounded-lg p-3 transition-colors ${
-                            issuerId === issuer.id
-                              ? 'bg-[#5B9A5B]/[0.05] border-[#5B9A5B]/40'
-                              : 'bg-white/[0.02] border-white/10 hover:border-white/20'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between mb-1">
-                            <div className="text-sm font-medium text-white">{issuer.name}</div>
-                            {issuerId === issuer.id && <CheckCircle className="h-4 w-4 text-[#5B9A5B] flex-shrink-0" />}
-                          </div>
-                          <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mb-1">
-                            {issuer.domain}
-                          </div>
-                          <div className="text-xs text-gray-500 leading-relaxed">{issuer.description}</div>
-                        </button>
-                      ))}
-                    </div>
+        {/* WALLET TAB */}
+        {activeTab === 'wallet' && (
+          <>
+            {/* Progress Steps */}
+            <div className="flex items-center mb-8">
+              {[
+                { num: 1, label: 'Input' },
+                { num: 2, label: 'Attributes' },
+                { num: 3, label: 'Presentation' }
+              ].map(({ num, label }, idx) => (
+                <div key={num} className="flex items-center">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-mono transition-all ${
+                    step >= num
+                      ? 'bg-[#5B9A5B] text-white'
+                      : 'bg-white/5 border border-white/10 text-gray-500'
+                  }`}>
+                    {step > num ? <CheckCircle className="h-4 w-4" /> : num}
                   </div>
-
-                  {/* Non-manual issuer: fetch + approve flow */}
-                  {activeIssuer && activeIssuer.kind !== 'manual' && (
-                    <div className="mb-6 p-5 bg-white/[0.02] border border-white/10 rounded-lg">
-                      {!issuerPayload && (
-                        <>
-                          <div className="text-sm text-gray-300 mb-1">
-                            Retrieve credential from {activeIssuer.name}
-                          </div>
-                          <div className="text-xs text-gray-500 mb-4 leading-relaxed">
-                            {activeIssuer.kind === 'sdjwt'
-                              ? 'Upload a Pehchaan SD-JWT file, paste one into the box below, or use the bundled sample. Claims are extracted client-side for review before commitment.'
-                              : 'Initiates an OAuth 2.0 consent handshake (simulated). Retrieved claims require explicit approval before commitment.'}
-                          </div>
-
-                          {activeIssuer.kind === 'sdjwt' && (
-                            <>
-                              <div className="flex items-center gap-2 mb-3">
-                                <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 rounded-md text-xs text-gray-300 cursor-pointer transition-colors">
-                                  <Upload className="h-3.5 w-3.5" />
-                                  Upload .jwt / .txt
-                                  <input
-                                    type="file"
-                                    accept=".txt,.jwt,text/plain"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0]
-                                      if (!file) return
-                                      const reader = new FileReader()
-                                      reader.onload = (ev) => {
-                                        setJwtInput(String(ev.target?.result || '').trim())
-                                      }
-                                      reader.readAsText(file)
-                                    }}
-                                    className="hidden"
-                                  />
-                                </label>
-                                {jwtInput && (
-                                  <button
-                                    onClick={() => setJwtInput('')}
-                                    className="text-xs text-gray-500 hover:text-gray-300 font-mono"
-                                  >
-                                    clear
-                                  </button>
-                                )}
-                                <div className="text-[10px] text-gray-500 font-mono ml-auto">
-                                  {jwtInput ? `${jwtInput.length} chars loaded` : 'will use bundled sample'}
-                                </div>
-                              </div>
-                              <textarea
-                                value={jwtInput}
-                                onChange={(e) => setJwtInput(e.target.value)}
-                                placeholder="Or paste Aadhaar SD-JWT here (header.payload.sig~disclosure1~disclosure2…)"
-                                className="w-full h-24 bg-black border border-white/10 rounded-md p-3 text-[10px] text-gray-300 font-mono resize-none focus:outline-none focus:border-[#5B9A5B]/50 mb-3"
-                              />
-                            </>
-                          )}
-
-                          <button
-                            onClick={fetchFromIssuer}
-                            disabled={loading}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-[#5B9A5B] hover:bg-[#4a8a4a] disabled:opacity-50 text-black text-sm font-semibold rounded-lg transition-colors"
-                          >
-                            {loading
-                              ? <><Loader2 className="h-4 w-4 animate-spin" /> Parsing</>
-                              : <><FileText className="h-4 w-4" /> {activeIssuer.kind === 'sdjwt' ? 'Parse Credential' : 'Request Credential'}</>
-                            }
-                          </button>
-                        </>
-                      )}
-
-                      {issuerPayload?.status === 'fetching' && (
-                        <div className="flex items-center gap-3 text-sm text-gray-400">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Retrieving signed credential from {activeIssuer.name}…
-                        </div>
-                      )}
-
-                      {issuerPayload?.status === 'ready' && (
-                        <>
-                          <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#5B9A5B] mb-3">
-                            <CheckCircle className="h-3.5 w-3.5" />
-                            Credential Received — Awaiting Approval
-                          </div>
-
-                          {/* Metadata strip */}
-                          {issuerPayload.metadata && (
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
-                              <MetaPill label="Algorithm" value={issuerPayload.metadata.algorithm} />
-                              <MetaPill label="Disclosed" value={`${issuerPayload.metadata.disclosed} / ${issuerPayload.metadata.disclosed + issuerPayload.metadata.hidden}`} />
-                              <MetaPill
-                                label="Holder Binding"
-                                value={issuerPayload.metadata.holderBinding
-                                  ? `${issuerPayload.metadata.holderKeyType || 'yes'}`
-                                  : 'none'}
-                              />
-                              <MetaPill label="Hidden Claims" value={issuerPayload.metadata.hidden} />
-                            </div>
-                          )}
-
-                          <div className="bg-black border border-white/10 rounded-md p-3 mb-3">
-                            <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mb-2">
-                              Disclosed Claims
-                            </div>
-                            <div className="space-y-1 text-xs font-mono">
-                              {Object.entries(issuerPayload.claims).map(([k, v]) => (
-                                <div key={k} className="flex justify-between gap-4">
-                                  <span className="text-gray-500">{k}</span>
-                                  <span className="text-gray-200 truncate">{v}</span>
-                                </div>
-                              ))}
-                              {Object.keys(issuerPayload.claims).length === 0 && (
-                                <div className="text-gray-500 italic">No recognised claims were disclosed.</div>
-                              )}
-                            </div>
-                          </div>
-
-                          {issuerPayload.missing && issuerPayload.missing.length > 0 && (
-                            <div className="bg-white/[0.02] border border-white/10 rounded-md p-3 mb-4 text-xs text-gray-400 leading-relaxed">
-                              <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mb-1">
-                                Not Disclosed by Issuer
-                              </div>
-                              <div className="font-mono">{issuerPayload.missing.join(', ')}</div>
-                              <div className="mt-1 text-[11px] text-gray-500">
-                                These fields remain hidden in the SD-JWT and must be supplied manually below before commitment.
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={approveIssuerPayload}
-                              className="flex-1 py-2 bg-[#5B9A5B] hover:bg-[#4a8a4a] text-black text-sm font-semibold rounded-md transition-colors"
-                            >
-                              Approve &amp; Use Credential
-                            </button>
-                            <button
-                              onClick={() => setIssuerPayload(null)}
-                              className="py-2 px-3 bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 text-sm text-gray-300 rounded-md transition-colors"
-                            >
-                              Discard
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                  <span className={`ml-2 text-sm font-mono hidden sm:block ${step >= num ? 'text-white' : 'text-gray-600'}`}>
+                    {label}
+                  </span>
+                  {idx < 2 && (
+                    <div className={`h-px w-12 mx-4 ${step > num ? 'bg-[#5B9A5B]' : 'bg-white/10'}`} />
                   )}
+                </div>
+              ))}
+            </div>
 
-                  {/* Credential input form (always visible, editable after import) */}
-                  <div className="text-xs font-mono uppercase tracking-wider text-gray-500 mb-3">
-                    {activeIssuer?.kind === 'manual' ? 'Private Inputs' : 'Approved Values'}
+            {/* Error Alert */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center">
+                <AlertCircle className="h-5 w-5 text-red-400 mr-3" />
+                <p className="text-red-400 text-sm font-mono">{error}</p>
+              </div>
+            )}
+
+            {/* STEP 1 */}
+            {step === 1 && (
+              <div className="card max-w-3xl">
+                <div className="text-xs text-gray-500 font-mono mb-3">// credential_issuer</div>
+                <div className="grid md:grid-cols-2 gap-3 mb-6">
+                  {ISSUERS.map(issuer => (
+                    <button
+                      key={issuer.id}
+                      onClick={() => selectIssuer(issuer.id)}
+                      className={`text-left p-4 rounded-lg border transition-all ${
+                        issuerId === issuer.id
+                          ? 'bg-[#5B9A5B]/10 border-[#5B9A5B]/30'
+                          : 'bg-black border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="text-sm font-medium text-white">{issuer.name}</div>
+                        {issuerId === issuer.id && <CheckCircle className="h-4 w-4 text-[#5B9A5B] flex-shrink-0" />}
+                      </div>
+                      <div className="text-xs text-gray-500 font-mono mb-1">{issuer.domain}</div>
+                      <div className="text-xs text-gray-500">{issuer.description}</div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* SD-JWT retrieval block */}
+                {activeIssuer && activeIssuer.kind === 'sdjwt' && (
+                  <div className="mb-6 p-5 bg-black rounded-lg border border-white/10">
+                    {!issuerPayload && (
+                      <>
+                        <div className="text-sm text-white mb-1">Retrieve credential from {activeIssuer.name}</div>
+                        <div className="text-xs text-gray-500 mb-4">
+                          Upload a Pehchaan SD-JWT file, paste one below, or use the bundled sample.
+                          Claims are extracted server-side and surfaced for approval before commitment.
+                        </div>
+
+                        <div className="flex items-center gap-2 mb-3">
+                          <label className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-xs text-gray-300 cursor-pointer transition-colors">
+                            <Upload className="h-3.5 w-3.5" />
+                            Upload .jwt / .txt
+                            <input
+                              type="file"
+                              accept=".txt,.jwt,text/plain"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (!file) return
+                                const reader = new FileReader()
+                                reader.onload = (ev) => setJwtInput(String(ev.target?.result || '').trim())
+                                reader.readAsText(file)
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+                          {jwtInput && (
+                            <button
+                              onClick={() => setJwtInput('')}
+                              className="text-xs text-gray-500 hover:text-gray-300 font-mono"
+                            >
+                              clear
+                            </button>
+                          )}
+                          <div className="text-xs text-gray-500 font-mono ml-auto">
+                            {jwtInput ? `${jwtInput.length} chars loaded` : 'will use bundled sample'}
+                          </div>
+                        </div>
+
+                        <textarea
+                          value={jwtInput}
+                          onChange={(e) => setJwtInput(e.target.value)}
+                          placeholder="Or paste Aadhaar SD-JWT here (header.payload.sig~disclosure1~disclosure2…)"
+                          className="input font-mono text-xs h-24 resize-none mb-3"
+                        />
+
+                        <button
+                          onClick={fetchFromIssuer}
+                          disabled={loading}
+                          className="btn-primary inline-flex items-center"
+                        >
+                          {loading
+                            ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Parsing</>
+                            : <><FileText className="h-4 w-4 mr-2" /> Parse Credential</>
+                          }
+                        </button>
+                      </>
+                    )}
+
+                    {issuerPayload?.status === 'fetching' && (
+                      <div className="flex items-center text-sm text-gray-400">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Retrieving signed credential from {activeIssuer.name}…
+                      </div>
+                    )}
+
+                    {issuerPayload?.status === 'ready' && (
+                      <>
+                        <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#5B9A5B] mb-3">
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          Credential Received — Awaiting Approval
+                        </div>
+
+                        {issuerPayload.metadata && (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                            <MetaPill label="Algorithm" value={issuerPayload.metadata.algorithm} />
+                            <MetaPill
+                              label="Disclosed"
+                              value={`${issuerPayload.metadata.disclosed} / ${issuerPayload.metadata.disclosed + issuerPayload.metadata.hidden}`}
+                            />
+                            <MetaPill
+                              label="Holder Binding"
+                              value={issuerPayload.metadata.holderBinding ? `${issuerPayload.metadata.holderKeyType || 'yes'}` : 'none'}
+                            />
+                            <MetaPill label="Hidden" value={issuerPayload.metadata.hidden} />
+                          </div>
+                        )}
+
+                        <div className="bg-black rounded-md p-3 mb-3 border border-white/10">
+                          <div className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-2">
+                            Disclosed Claims
+                          </div>
+                          <div className="space-y-1 text-xs font-mono">
+                            {Object.entries(issuerPayload.claims).map(([k, v]) => (
+                              <div key={k} className="flex justify-between gap-4">
+                                <span className="text-gray-500">{k}</span>
+                                <span className="text-gray-200 truncate">{v}</span>
+                              </div>
+                            ))}
+                            {Object.keys(issuerPayload.claims).length === 0 && (
+                              <div className="text-gray-500 italic">No recognised claims disclosed.</div>
+                            )}
+                          </div>
+                        </div>
+
+                        {issuerPayload.missing && issuerPayload.missing.length > 0 && (
+                          <div className="bg-white/5 border border-white/10 rounded-md p-3 mb-4 text-xs text-gray-400">
+                            <div className="text-xs text-gray-500 font-mono uppercase tracking-wider mb-1">
+                              Not Disclosed by Issuer
+                            </div>
+                            <div className="font-mono">{issuerPayload.missing.join(', ')}</div>
+                            <div className="mt-1 text-xs text-gray-500">
+                              These fields remain hidden in the SD-JWT; fill them manually below.
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={approveIssuerPayload}
+                            className="btn-primary flex-1"
+                          >
+                            Approve &amp; Use Credential
+                          </button>
+                          <button
+                            onClick={() => setIssuerPayload(null)}
+                            className="btn-secondary"
+                          >
+                            Discard
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <div className="grid md:grid-cols-2 gap-3 mb-6">
-                    <FormField name="name" label="Name" value={formData.name} onChange={onField} />
-                    <FormField name="dateOfBirth" label="Date of Birth" type="date" value={formData.dateOfBirth} onChange={onField} />
-                    <FormField
+                )}
+
+                <div className="text-xs text-gray-500 font-mono mb-3">
+                  // {activeIssuer?.kind === 'manual' ? 'private_inputs' : 'approved_values'}
+                </div>
+                <div className="grid md:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="label font-mono text-xs">name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={onField}
+                      className="input font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="label font-mono text-xs">dateOfBirth</label>
+                    <input
+                      type="date"
+                      name="dateOfBirth"
+                      value={formData.dateOfBirth}
+                      onChange={onField}
+                      className="input font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="label font-mono text-xs">aadhaarNumber[12]</label>
+                    <input
+                      type="text"
                       name="aadhaarNumber"
-                      label="Aadhaar Number"
                       value={formData.aadhaarNumber}
                       onChange={onField}
-                      placeholder="12-digit number"
+                      className="input font-mono"
+                      placeholder="uint[12]"
                       maxLength={12}
                     />
-                    <FormField
+                  </div>
+                  <div>
+                    <label className="label font-mono text-xs">pincode</label>
+                    <input
+                      type="text"
                       name="pincode"
-                      label="Pincode"
                       value={formData.pincode}
                       onChange={onField}
-                      placeholder="6-digit pincode"
+                      className="input font-mono"
+                      placeholder="uint"
                       maxLength={6}
                     />
                   </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                    <div className="text-xs text-gray-500 max-w-sm leading-relaxed">
-                      Values are hashed client-side into a Poseidon commitment.
-                      Private inputs are retained on-device only.
-                    </div>
-                    <button
-                      onClick={generateCommitment}
-                      disabled={loading || !formData.name || !formData.dateOfBirth || !formData.aadhaarNumber}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#5B9A5B] hover:bg-[#4a8a4a] disabled:bg-white/[0.04] disabled:text-gray-600 text-black font-semibold rounded-lg transition-colors text-sm"
-                    >
-                      {loading
-                        ? <><Loader2 className="h-4 w-4 animate-spin" /> Computing</>
-                        : <>Generate Commitment <ArrowRight className="h-4 w-4" /></>
-                      }
-                    </button>
-                  </div>
                 </div>
-              )}
 
-              {/* STEP 2 — ATTRIBUTE SELECTION */}
-              {step === 2 && credential && (
-                <div className="bg-black border border-white/10 rounded-xl p-6">
-                  <div className="mb-6 p-4 bg-[#5B9A5B]/[0.04] border border-[#5B9A5B]/30 rounded-lg flex items-start gap-3">
-                    <CheckCircle className="h-4 w-4 text-[#5B9A5B] flex-shrink-0 mt-0.5" />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-mono text-[#5B9A5B] uppercase tracking-wider mb-1">
-                        Commitment Generated
-                      </div>
-                      <code className="text-[11px] text-gray-400 font-mono break-all">
-                        {credential.commitment}
-                      </code>
-                    </div>
-                  </div>
+                <div className="p-4 bg-[#5B9A5B]/10 border border-[#5B9A5B]/30 rounded-lg mb-6">
+                  <code className="text-xs text-[#5B9A5B] font-mono">
+                    // Witness data hashed locally into Poseidon commitment. Never transmitted.
+                  </code>
+                </div>
 
-                  <div className="text-xs font-mono uppercase tracking-wider text-gray-500 mb-3">
-                    Select Attributes to Prove
-                  </div>
-                  <div className="space-y-2 mb-6">
-                    {ATTRIBUTES.map(attr => {
-                      const checked = selectedAttrs.has(attr.id)
-                      return (
-                        <button
-                          key={attr.id}
-                          onClick={() => toggleAttr(attr.id)}
-                          className={`w-full text-left border rounded-lg p-4 transition-colors flex items-center gap-4 ${
-                            checked
-                              ? 'bg-[#5B9A5B]/[0.05] border-[#5B9A5B]/40'
-                              : 'bg-white/[0.02] border-white/10 hover:border-white/20'
-                          }`}
-                        >
-                          <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
-                            checked
-                              ? 'bg-[#5B9A5B] border-[#5B9A5B]'
-                              : 'border-white/20'
-                          }`}>
-                            {checked && <CheckCircle className="h-3.5 w-3.5 text-black" />}
-                          </div>
-                          <div className="flex-shrink-0">
-                            <attr.icon className={`h-4 w-4 ${checked ? 'text-[#5B9A5B]' : 'text-gray-500'}`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-white">{attr.label}</div>
-                            <div className="text-xs text-gray-500 mt-0.5">{attr.description}</div>
-                          </div>
-                          <code className="text-[10px] text-gray-500 font-mono hidden md:block">{attr.circuit}</code>
-                        </button>
-                      )
-                    })}
-                  </div>
+                <button
+                  onClick={generateCommitment}
+                  disabled={loading || !formData.name || !formData.dateOfBirth || !formData.aadhaarNumber}
+                  className="btn-primary w-full flex items-center justify-center font-mono"
+                >
+                  {loading
+                    ? <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Computing commitment…</>
+                    : <>Generate Commitment <ArrowRight className="ml-2 h-5 w-5" /></>
+                  }
+                </button>
+              </div>
+            )}
 
-                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                    <button
-                      onClick={() => setStep(1)}
-                      className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
-                    >
-                      <ArrowLeft className="h-4 w-4" /> Back
-                    </button>
-                    <div className="flex items-center gap-4">
-                      <div className="text-xs text-gray-500">
-                        {selectedAttrs.size} attribute{selectedAttrs.size !== 1 ? 's' : ''} selected
-                      </div>
+            {/* STEP 2 */}
+            {step === 2 && credential && (
+              <div className="card max-w-3xl">
+                <div className="card-green mb-6">
+                  <div className="flex items-center">
+                    <CheckCircle className="h-5 w-5 text-[#5B9A5B] mr-2" />
+                    <span className="text-[#5B9A5B] font-mono text-sm">Commitment generated</span>
+                  </div>
+                  <code className="text-xs text-gray-400 mt-2 block font-mono break-all">
+                    {credential.commitment}
+                  </code>
+                </div>
+
+                <div className="text-xs text-gray-500 font-mono mb-3">// select attributes to prove</div>
+
+                <div className="space-y-3 mb-6">
+                  {ATTRIBUTES.map(attr => {
+                    const checked = selectedAttrs.has(attr.id)
+                    return (
                       <button
-                        onClick={generateProofs}
-                        disabled={loading || selectedAttrs.size === 0}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#5B9A5B] hover:bg-[#4a8a4a] disabled:bg-white/[0.04] disabled:text-gray-600 text-black font-semibold rounded-lg transition-colors text-sm"
+                        key={attr.id}
+                        onClick={() => toggleAttr(attr.id)}
+                        className={`w-full text-left p-4 rounded-lg border transition-all flex items-center gap-4 ${
+                          checked
+                            ? 'bg-[#5B9A5B]/10 border-[#5B9A5B]/30'
+                            : 'bg-black border-white/10 hover:border-white/20'
+                        }`}
                       >
-                        {loading
-                          ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating</>
-                          : <>Generate {selectedAttrs.size > 1 ? 'Composite ' : ''}Proof <ArrowRight className="h-4 w-4" /></>
-                        }
+                        <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${
+                          checked ? 'bg-[#5B9A5B] border-[#5B9A5B]' : 'border-white/20'
+                        }`}>
+                          {checked && <CheckCircle className="h-3.5 w-3.5 text-black" />}
+                        </div>
+                        <div className="w-10 h-10 rounded-lg bg-[#5B9A5B]/10 border border-[#5B9A5B]/30 flex items-center justify-center flex-shrink-0">
+                          <attr.icon className="h-5 w-5 text-[#5B9A5B]" />
+                        </div>
+                        <div className="flex-1">
+                          <code className="text-[#5B9A5B] text-sm font-mono">{attr.circuit}</code>
+                          <p className="text-xs text-gray-500 mt-0.5">{attr.description}</p>
+                        </div>
                       </button>
+                    )
+                  })}
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <button onClick={() => setStep(1)} className="btn-secondary flex items-center">
+                    <ArrowLeft className="h-4 w-4 mr-2" /> Back
+                  </button>
+                  <button
+                    onClick={generateProofs}
+                    disabled={loading || selectedAttrs.size === 0}
+                    className="btn-primary flex-1 flex items-center justify-center font-mono"
+                  >
+                    {loading
+                      ? <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> groth16.fullProve()</>
+                      : <>Generate {selectedAttrs.size > 1 ? 'Composite ' : ''}Proof <ArrowRight className="ml-2 h-5 w-5" /></>
+                    }
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3 */}
+            {step === 3 && proofBundle && presentationPayload && (
+              <div className="max-w-3xl">
+                <div className="card">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-lg bg-[#5B9A5B]/20 flex items-center justify-center mr-3">
+                        <CheckCircle className="h-5 w-5 text-[#5B9A5B]" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold text-white font-mono">Presentation Ready</h2>
+                        <p className="text-xs text-gray-500">
+                          {proofBundle.attributeCount} attribute{proofBundle.attributeCount !== 1 ? 's' : ''} · Groth16 / BN254
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-[#5B9A5B] font-mono">{proofTiming}ms</div>
+                      <div className="text-xs text-gray-600">prove_time</div>
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* STEP 3 — PRESENTATION OUTPUT */}
-              {step === 3 && proofBundle && presentationPayload && (
-                <div className="space-y-4">
-                  <div className="bg-black border border-[#5B9A5B]/40 rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-[#5B9A5B]/10 border border-[#5B9A5B]/30 flex items-center justify-center">
-                          <CheckCircle className="h-5 w-5 text-[#5B9A5B]" />
-                        </div>
-                        <div>
-                          <div className="text-base font-semibold text-white">Proof Presentation Ready</div>
-                          <div className="text-xs text-gray-500 font-mono">
-                            {proofBundle.attributeCount} attribute{proofBundle.attributeCount !== 1 ? 's' : ''} · Groth16 · BN254
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold text-[#5B9A5B] font-mono tabular-nums">{proofTiming}ms</div>
-                        <div className="text-[10px] text-gray-500 uppercase tracking-wider">proof time</div>
-                      </div>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      {/* QR */}
-                      <div>
-                        <div className="text-xs font-mono uppercase tracking-wider text-gray-500 mb-3">
-                          Scan from Verifier Device
-                        </div>
-                        <div className="bg-white p-4 rounded-lg inline-block">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <div className="text-xs text-gray-500 font-mono mb-3">// qr_code</div>
+                      <div className="flex justify-center">
+                        <div className="p-4 bg-white rounded-lg">
                           <QRCodeSVG
                             value={JSON.stringify(presentationPayload)}
                             size={200}
                             level="M"
                           />
                         </div>
-                        <div className="text-xs text-gray-500 mt-3 leading-relaxed max-w-xs">
-                          QR encodes the full presentation payload. A verifier scans and calls
-                          their local <code className="text-gray-300">snarkjs.groth16.verify</code>.
-                        </div>
                       </div>
+                      <p className="text-xs text-gray-500 text-center mt-3">
+                        Scan from a verifier device to consume this presentation.
+                      </p>
+                    </div>
 
-                      {/* Payload */}
-                      <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="text-xs font-mono uppercase tracking-wider text-gray-500">
-                            Presentation Payload
-                          </div>
-                          <button
-                            onClick={copyPayload}
-                            className="inline-flex items-center gap-1.5 text-xs text-[#5B9A5B] hover:text-[#7CB87C] font-mono"
-                          >
-                            {copied ? <><CheckCircle className="h-3 w-3" /> Copied</> : <><Copy className="h-3 w-3" /> Copy JSON</>}
-                          </button>
-                        </div>
-                        <pre className="bg-black border border-white/10 rounded-lg p-3 text-[10px] text-gray-400 font-mono overflow-auto max-h-56 leading-relaxed">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-xs text-gray-500 font-mono">// presentation_payload</div>
+                        <button
+                          onClick={copyPayload}
+                          className="text-[#5B9A5B] hover:text-[#7CB87C] flex items-center text-xs font-mono"
+                        >
+                          {copied
+                            ? <><CheckCircle className="h-3 w-3 mr-1" /> copied (full payload)</>
+                            : <><Copy className="h-3 w-3 mr-1" /> copy full JSON</>
+                          }
+                        </button>
+                      </div>
+                      <pre className="bg-black border border-white/10 rounded-lg p-3 text-xs font-mono text-[#5B9A5B] overflow-auto max-h-56">
 {JSON.stringify({
   version: presentationPayload.version,
   proofs: presentationPayload.proofs.map(p => ({
     type: p.type,
-    nullifier: p.nullifier.slice(0, 32) + '…',
-    publicSignals: p.publicSignals.length,
-    proofBytes: JSON.stringify(p.proof).length
+    proof: {
+      pi_a: [`${(p.proof.pi_a?.[0] || '').slice(0, 12)}…`, '…'],
+      pi_b: '…',
+      pi_c: '…',
+      protocol: p.proof.protocol,
+      curve: p.proof.curve
+    },
+    publicSignals: p.publicSignals.map(s => String(s).slice(0, 10) + '…'),
+    nullifier: String(p.nullifier).slice(0, 24) + '…'
   }))
 }, null, 2)}
-                        </pre>
-
-                        <div className="grid grid-cols-3 gap-2 mt-3">
-                          {proofBundle.proofs.map((p, i) => (
-                            <div key={i} className="bg-white/[0.02] border border-white/10 rounded-md p-2">
-                              <div className="text-[9px] text-gray-500 font-mono uppercase tracking-wider">{p.type}</div>
-                              <div className="text-xs text-[#5B9A5B] font-mono mt-1">
-                                {p.isValid ? 'valid' : 'invalid'}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                      </pre>
+                      <div className="text-[10px] text-gray-600 font-mono mt-2 leading-relaxed">
+                        Values above are truncated for display. The full Groth16 proof
+                        points, public signals, and nullifiers are encoded in the QR and
+                        copied by the <span className="text-[#5B9A5B]">copy</span> button.
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 mt-3">
+                        {proofBundle.proofs.map((p, i) => (
+                          <div key={i} className="bg-white/5 border border-white/10 rounded-md p-2">
+                            <div className="text-[10px] text-gray-500 font-mono uppercase">{p.type}</div>
+                            <div className="text-xs text-[#5B9A5B] font-mono mt-0.5">valid</div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => setStep(2)}
-                      className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
-                    >
-                      <ArrowLeft className="h-4 w-4" /> Change Attributes
-                    </button>
-                    <button
-                      onClick={reset}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 rounded-lg transition-colors text-sm text-gray-300"
-                    >
-                      Start New Presentation
-                    </button>
-                  </div>
                 </div>
-              )}
-            </>
-          )}
 
-          {/* HISTORY TAB */}
-          {tab === 'history' && (
-            <div className="max-w-3xl">
-              {history.length === 0 ? (
-                <div className="bg-black border border-white/10 rounded-xl p-12 text-center">
-                  <Clock className="h-8 w-8 text-gray-600 mx-auto mb-3" />
-                  <div className="text-sm text-gray-400">No proofs generated in this session yet.</div>
-                  <button
-                    onClick={() => setTab('wallet')}
-                    className="mt-4 px-4 py-2 bg-[#5B9A5B]/10 hover:bg-[#5B9A5B]/20 border border-[#5B9A5B]/30 text-[#5B9A5B] rounded-md text-sm"
-                  >
-                    Generate a Proof →
+                <div className="flex items-center gap-4 mt-6">
+                  <button onClick={() => setStep(2)} className="btn-secondary flex items-center">
+                    <ArrowLeft className="h-4 w-4 mr-2" /> Change Attributes
+                  </button>
+                  <button onClick={reset} className="btn-primary flex-1">
+                    Start New Presentation
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {history.map((h, i) => (
-                    <div key={h.id || i} className="bg-black border border-white/10 rounded-lg p-4 flex items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
+              </div>
+            )}
+          </>
+        )}
+
+        {/* HISTORY TAB */}
+        {activeTab === 'history' && (
+          <div className="max-w-4xl">
+            {history.length === 0 ? (
+              <div className="card text-center py-16">
+                <Clock className="h-10 w-10 text-gray-600 mx-auto mb-3" />
+                <div className="text-sm text-gray-400 mb-4">No proofs generated in this session yet.</div>
+                <button
+                  onClick={() => setActiveTab('wallet')}
+                  className="btn-primary inline-flex items-center"
+                >
+                  Generate a Proof <ArrowRight className="ml-2 h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {history.map((h) => (
+                  <div key={h.id} className="card flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-lg bg-[#5B9A5B]/20 flex items-center justify-center mr-4">
+                        <CheckCircle className="h-5 w-5 text-[#5B9A5B]" />
+                      </div>
+                      <div>
                         <div className="flex items-center gap-2 mb-1">
                           {h.types.map(t => (
-                            <span key={t} className="text-[11px] font-mono px-2 py-0.5 bg-[#5B9A5B]/10 border border-[#5B9A5B]/30 text-[#5B9A5B] rounded">
-                              {t}
-                            </span>
+                            <code key={t} className="text-[#5B9A5B] text-xs font-mono">
+                              {t}_verification
+                            </code>
                           ))}
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {new Date(h.generatedAt).toLocaleString()}
-                          <span className="mx-2 text-gray-700">·</span>
-                          <span className="text-gray-400 font-mono tabular-nums">{h.proofTimeMs}ms</span>
-                          <span className="mx-2 text-gray-700">·</span>
-                          <span className="text-gray-500">{h.types.length > 1 ? 'composite' : 'single'}</span>
+                        <div className="text-xs text-gray-500 font-mono">
+                          {new Date(h.generatedAt).toLocaleString()} · {h.proofTimeMs}ms · {h.types.length > 1 ? 'composite' : 'single'}
                         </div>
                       </div>
-                      <button
-                        onClick={() => exportHistoryItemPdf(h)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 rounded-md text-xs text-gray-300 hover:text-white transition-colors"
-                        title="Download receipt"
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        PDF
-                      </button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-        </div>
-      </main>
-    </div>
-  )
-}
-
-// ────────────────────────────────────────────────────────────────────
-// Sub-components
-// ────────────────────────────────────────────────────────────────────
-
-function SidebarButton({ active, onClick, icon, children }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-        active
-          ? 'bg-[#5B9A5B]/10 text-[#5B9A5B] border border-[#5B9A5B]/30'
-          : 'text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent'
-      }`}
-    >
-      {icon}
-      {children}
-    </button>
-  )
-}
-
-function StepIndicator({ num, label, active, done }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold font-mono border transition-colors ${
-        done
-          ? 'bg-[#5B9A5B] border-[#5B9A5B] text-black'
-          : active
-            ? 'bg-[#5B9A5B]/10 border-[#5B9A5B] text-[#5B9A5B]'
-            : 'bg-white/[0.02] border-white/10 text-gray-600'
-      }`}>
-        {done ? <CheckCircle className="h-3.5 w-3.5" /> : num}
+                    <button
+                      onClick={() => exportHistoryItemPdf(h)}
+                      className="text-gray-500 hover:text-[#5B9A5B] transition-colors"
+                      title="Download Receipt"
+                    >
+                      <Download className="h-5 w-5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
-      <span className={`text-xs font-mono uppercase tracking-wider ${active ? 'text-gray-300' : 'text-gray-600'}`}>
-        {label}
-      </span>
     </div>
-  )
-}
-
-function StepConnector({ done }) {
-  return (
-    <div className={`flex-1 h-px max-w-16 ${done ? 'bg-[#5B9A5B]' : 'bg-white/10'}`} />
   )
 }
 
 function MetaPill({ label, value }) {
   return (
-    <div className="bg-white/[0.02] border border-white/10 rounded-md px-3 py-2">
+    <div className="bg-white/5 border border-white/10 rounded-md px-3 py-2">
       <div className="text-[9px] text-gray-500 font-mono uppercase tracking-wider mb-0.5">{label}</div>
       <div className="text-xs text-gray-200 font-mono truncate">{value}</div>
-    </div>
-  )
-}
-
-function FormField({ name, label, value, onChange, type = 'text', placeholder, maxLength }) {
-  return (
-    <div>
-      <label className="block text-[10px] text-gray-500 font-mono uppercase tracking-wider mb-1.5">
-        {label}
-      </label>
-      <input
-        type={type}
-        name={name}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        maxLength={maxLength}
-        className="w-full bg-white/[0.02] border border-white/10 rounded-md px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-[#5B9A5B]/50"
-      />
-    </div>
-  )
-}
-
-function Row({ label, value }) {
-  return (
-    <div className="flex items-center justify-between text-sm">
-      <span className="text-gray-500 text-xs font-mono uppercase tracking-wider">{label}</span>
-      <span className="text-white font-mono">{value}</span>
     </div>
   )
 }
