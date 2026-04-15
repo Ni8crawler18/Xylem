@@ -161,8 +161,46 @@ export function generateRandomNullifier() {
   return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
+/**
+ * Generate a composite (multi-attribute) proof from a single credential.
+ * Runs existing circuits sequentially and aggregates results client-side.
+ * Each attribute gets its own Groth16 proof + nullifier.
+ *
+ * attributes: [{ type: 'age'|'aadhaar'|'state', publicInputs: {...} }]
+ * privateInputs: shared credential private inputs
+ */
+export async function generateCompositeProof(attributes, privateInputs) {
+  const startTime = performance.now()
+  const proofs = []
+
+  for (const attr of attributes) {
+    const result = await generateProofClientSide(
+      attr.type,
+      privateInputs,
+      attr.publicInputs
+    )
+    proofs.push({
+      type: attr.type,
+      proof: result.proof,
+      publicSignals: result.publicSignals,
+      nullifier: result.nullifier,
+      isValid: result.isValid
+    })
+  }
+
+  const totalTime = Math.round(performance.now() - startTime)
+
+  return {
+    proofs,
+    totalTime,
+    attributeCount: proofs.length,
+    allValid: proofs.every(p => p.isValid)
+  }
+}
+
 export default {
   generateProofClientSide,
   verifyProofClientSide,
-  generateRandomNullifier
+  generateRandomNullifier,
+  generateCompositeProof
 }

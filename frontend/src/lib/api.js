@@ -43,6 +43,11 @@ export const api = {
     body: JSON.stringify(data)
   }),
 
+  extractJwt: (jwt) => request('/credentials/extract-jwt', {
+    method: 'POST',
+    body: JSON.stringify({ jwt })
+  }),
+
   verifyCommitment: (commitment) => request(`/credentials/verify-commitment/${commitment}`, {
     method: 'GET'
   }),
@@ -53,6 +58,11 @@ export const api = {
   verifyProof: (type, data) => request(`/verify/${type}`, {
     method: 'POST',
     body: JSON.stringify(data)
+  }),
+
+  verifyComposite: (proofs, verifierName) => request('/verify/composite', {
+    method: 'POST',
+    body: JSON.stringify({ proofs, verifierName })
   }),
 
   generateProof: (type, privateInputs, publicInputs) => request('/verify/generate-proof', {

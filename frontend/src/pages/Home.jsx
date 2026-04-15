@@ -231,73 +231,137 @@ function Home({ onLoginClick }) {
         </div>
       </section>
 
-      {/* Prover vs Verifier */}
+      {/* Three-Actor Architecture */}
       <section id="architecture" className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            {/* Content */}
-            <div>
-              <div className="inline-flex items-center space-x-2 border border-white/10 rounded-full px-4 py-2 mb-6">
-                <span className="text-sm text-gray-400 font-mono">// Architecture</span>
-              </div>
+          <div className="mb-12">
+            <div className="inline-flex items-center space-x-2 border border-white/10 rounded-full px-4 py-2 mb-6">
+              <span className="text-sm text-gray-400 font-mono">// Architecture</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Issuer · Prover · Verifier
+              <br />
+              <span className="text-gray-500">Three-Party Protocol</span>
+            </h2>
+            <p className="text-gray-400 max-w-3xl">
+              An issuer attests to credentials; the prover holds them and generates
+              zero-knowledge proofs client-side; the verifier checks the proofs without
+              ever seeing the underlying personal data.
+            </p>
+          </div>
 
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-                Prover ↔ Verifier
-                <br />
-                <span className="text-gray-500">Protocol</span>
-              </h2>
-
-              <p className="text-gray-400 mb-8">
-                Two-party protocol where the prover demonstrates knowledge of a secret
-                witness satisfying a public statement, without revealing the witness itself.
-              </p>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="card-green">
-                  <div className="text-[#5B9A5B] font-mono text-sm mb-2">PROVER</div>
-                  <ul className="text-sm text-gray-400 space-y-2">
-                    <li className="flex items-center">
-                      <CheckCircle className="h-4 w-4 text-[#5B9A5B] mr-2" />
-                      Holds secret witness
-                    </li>
-                    <li className="flex items-center">
-                      <CheckCircle className="h-4 w-4 text-[#5B9A5B] mr-2" />
-                      Generates ZK proof
-                    </li>
-                    <li className="flex items-center">
-                      <CheckCircle className="h-4 w-4 text-[#5B9A5B] mr-2" />
-                      Local computation
-                    </li>
-                  </ul>
+          <div className="grid md:grid-cols-3 gap-4">
+            {/* ISSUER */}
+            <div className="bg-black border border-white/10 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">
+                  Step 1 · Issuance
                 </div>
-
-                <div className="card">
-                  <div className="text-white font-mono text-sm mb-2">VERIFIER</div>
-                  <ul className="text-sm text-gray-400 space-y-2">
-                    <li className="flex items-center">
-                      <CheckCircle className="h-4 w-4 text-gray-500 mr-2" />
-                      Receives proof only
-                    </li>
-                    <li className="flex items-center">
-                      <CheckCircle className="h-4 w-4 text-gray-500 mr-2" />
-                      Verifies validity
-                    </li>
-                    <li className="flex items-center">
-                      <CheckCircle className="h-4 w-4 text-gray-500 mr-2" />
-                      Learns nothing else
-                    </li>
-                  </ul>
+                <div className="w-7 h-7 rounded-md bg-white/[0.04] border border-white/10 flex items-center justify-center text-[10px] font-mono text-gray-400">
+                  IS
                 </div>
               </div>
+              <div className="text-lg font-bold text-white mb-2">Issuer</div>
+              <div className="text-xs text-gray-500 font-mono mb-4">
+                UIDAI · DigiLocker · Account Aggregator · Credit Bureau · NSDC
+              </div>
+              <ul className="text-sm text-gray-400 space-y-2">
+                <li className="flex items-start">
+                  <CheckCircle className="h-4 w-4 text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
+                  <span>Attests to user identity and attributes</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-4 w-4 text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
+                  <span>Signs credentials with institutional key</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-4 w-4 text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
+                  <span>Not contacted at verification time</span>
+                </li>
+              </ul>
             </div>
 
-            {/* Illustration */}
-            <div>
-              <img
-                src="/illustrations_2.png"
-                alt="Prover Verifier Protocol"
-                className="w-full rounded-lg"
-              />
+            {/* PROVER */}
+            <div className="bg-black border border-[#5B9A5B]/40 rounded-xl p-6 relative">
+              <div className="absolute top-0 right-5 -translate-y-1/2 text-[9px] font-mono uppercase tracking-widest bg-black border border-[#5B9A5B]/40 text-[#5B9A5B] px-2 py-0.5 rounded">
+                client-side
+              </div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-[10px] font-mono text-[#5B9A5B] uppercase tracking-widest">
+                  Step 2 · Proof Generation
+                </div>
+                <div className="w-7 h-7 rounded-md bg-[#5B9A5B]/10 border border-[#5B9A5B]/30 flex items-center justify-center text-[10px] font-mono text-[#5B9A5B]">
+                  PR
+                </div>
+              </div>
+              <div className="text-lg font-bold text-[#5B9A5B] mb-2">Prover</div>
+              <div className="text-xs text-gray-500 font-mono mb-4">User Wallet · On-Device</div>
+              <ul className="text-sm text-gray-400 space-y-2">
+                <li className="flex items-start">
+                  <CheckCircle className="h-4 w-4 text-[#5B9A5B] mr-2 mt-0.5 flex-shrink-0" />
+                  <span>Holds signed credentials locally</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-4 w-4 text-[#5B9A5B] mr-2 mt-0.5 flex-shrink-0" />
+                  <span>Generates Groth16 proofs in-browser</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-4 w-4 text-[#5B9A5B] mr-2 mt-0.5 flex-shrink-0" />
+                  <span>Private inputs never transmitted</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* VERIFIER */}
+            <div className="bg-black border border-white/10 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">
+                  Step 3 · Verification
+                </div>
+                <div className="w-7 h-7 rounded-md bg-white/[0.04] border border-white/10 flex items-center justify-center text-[10px] font-mono text-gray-400">
+                  VE
+                </div>
+              </div>
+              <div className="text-lg font-bold text-white mb-2">Verifier</div>
+              <div className="text-xs text-gray-500 font-mono mb-4">Bank · Telecom · Government</div>
+              <ul className="text-sm text-gray-400 space-y-2">
+                <li className="flex items-start">
+                  <CheckCircle className="h-4 w-4 text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
+                  <span>Receives proof and public signals</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-4 w-4 text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
+                  <span>Runs pairing check, ≈ 5 ms</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-4 w-4 text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
+                  <span>Stores only nullifier hash and result</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Flow arrows */}
+          <div className="mt-10 pt-8 border-t border-white/10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+              <div className="text-xs text-gray-500 font-mono">
+                <span className="text-gray-300">Issuer</span>
+                <span className="mx-2 text-[#5B9A5B]">→</span>
+                <span className="text-gray-300">Prover</span>
+                <div className="mt-1">signed credential</div>
+              </div>
+              <div className="text-xs text-gray-500 font-mono">
+                <span className="text-gray-300">Prover</span>
+                <span className="mx-2 text-[#5B9A5B]">→</span>
+                <span className="text-gray-300">Verifier</span>
+                <div className="mt-1">groth16 proof + nullifier</div>
+              </div>
+              <div className="text-xs text-gray-500 font-mono">
+                <span className="text-gray-300">Verifier</span>
+                <span className="mx-2 text-[#5B9A5B]">→</span>
+                <span className="text-gray-300">Prover</span>
+                <div className="mt-1">boolean result</div>
+              </div>
             </div>
           </div>
         </div>

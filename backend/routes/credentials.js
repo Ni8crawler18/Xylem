@@ -1,9 +1,97 @@
 import { Router } from 'express';
-import { v4 as uuidv4 } from 'uuid';
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { existsSync } from 'fs';
 import { credentialOps, issuerOps } from '../services/db.js';
 import { generateCredential } from '../services/issuer.js';
+import { parseSdJwtNode } from '../services/sdJwtParser.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const PYTHON_EXTRACTOR = join(__dirname, '../../scripts/extract_aadhaar_jwt.py');
+const HAS_PYTHON_EXTRACTOR = existsSync(PYTHON_EXTRACTOR);
 
 const router = Router();
+
+function runPythonExtractor(jwt) {
+  return new Promise((resolve, reject) => {
+    const extractor = spawn('python3', [PYTHON_EXTRACTOR], {
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    let stdout = '';
+    let stderr = '';
+    extractor.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
+    extractor.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
+    extractor.on('error', reject);
+    extractor.on('close', (exitCode) => {
+      if (exitCode !== 0) {
+        return reject(new Error(stderr.trim() || `extractor exited ${exitCode}`));
+      }
+      try {
+        resolve(JSON.parse(stdout));
+      } catch (e) {
+        reject(e);
+      }
+    });
+    extractor.stdin.write(jwt.trim());
+    extractor.stdin.end();
+  });
+}
+
+/**
+ * POST /api/v1/credentials/extract-jwt
+ * Parses a UIDAI Pehchaan SD-JWT and returns normalized claims.
+ * Uses the Python extractor when available; falls back to a Node
+ * implementation otherwise (required on Render / environments
+ * without python3 installed).
+ *
+ * Body: { jwt: '<raw SD-JWT string>' }
+ */
+router.post('/extract-jwt', async (req, res, next) => {
+  try {
+    const { jwt } = req.body;
+    if (!jwt || typeof jwt !== 'string') {
+      return res.status(400).json({
+        error: true,
+        message: 'Missing required field: jwt (string)'
+      });
+    }
+
+    let parsed;
+    let extractor = 'node';
+
+    if (HAS_PYTHON_EXTRACTOR) {
+      try {
+        parsed = await runPythonExtractor(jwt);
+        extractor = 'python';
+      } catch (err) {
+        // Fall through to Node parser if python3 is not available
+        parsed = null;
+      }
+    }
+
+    if (!parsed) {
+      parsed = parseSdJwtNode(jwt);
+    }
+
+    res.json({
+      success: true,
+      extractor,
+      claims: parsed.extracted_claims || {},
+      header: parsed.header,
+      payload: parsed.payload,
+      signature: parsed.signature,
+      disclosuresCount: (parsed.disclosures || []).length,
+      hiddenClaimsCount: parsed.hidden_claims_count || 0
+    });
+  } catch (error) {
+    if (error.message && error.message.startsWith('Invalid JWT')) {
+      return res.status(400).json({ error: true, message: error.message });
+    }
+    next(error);
+  }
+});
 
 /**
  * POST /api/v1/credentials/issue
@@ -89,8 +177,7 @@ router.post('/issue', async (req, res, next) => {
         issuedAt: new Date().toISOString(),
         expiresAt: credential.expiresAt
       },
-      processingTime: `${processingTime}ms`,
-      notice: 'Store your credential securely. The private inputs should never be shared.'
+      processingTime: `${processingTime}ms`
     });
 
   } catch (error) {

@@ -65,17 +65,69 @@ function VerifierDashboard() {
 
     try {
       const proofData = JSON.parse(proofInput)
-      const { proof, publicSignals, nullifier, verificationType } = proofData
 
-      if (!proof || !publicSignals || !nullifier || !verificationType) {
-        throw new Error('Invalid proof format')
+      // Two accepted shapes:
+      //  A) Presentation envelope: { version, proofs: [{type, proof, publicSignals, nullifier}, ...] }
+      //  B) Legacy single proof:   { proof, publicSignals, nullifier, verificationType }
+
+      let result
+      if (Array.isArray(proofData.proofs)) {
+        // New presentation envelope
+        if (proofData.proofs.length === 0) {
+          throw new Error('Presentation contains no proofs')
+        }
+        for (const p of proofData.proofs) {
+          if (!p.type || !p.proof || !p.publicSignals || !p.nullifier) {
+            throw new Error('Malformed proof entry in presentation (missing type, proof, publicSignals, or nullifier)')
+          }
+        }
+
+        if (proofData.proofs.length === 1) {
+          const single = proofData.proofs[0]
+          const r = await api.verifyProof(single.type, {
+            proof: single.proof,
+            publicSignals: single.publicSignals,
+            nullifier: single.nullifier
+          })
+          result = {
+            success: r.success,
+            verified: r.verified,
+            mode: 'single',
+            attributes: [{ type: single.type, passed: r.verified }],
+            verificationTime: r.verificationTime
+          }
+        } else {
+          const r = await api.verifyComposite(
+            proofData.proofs,
+            user?.name || 'Verifier'
+          )
+          result = {
+            success: r.success,
+            verified: r.verified,
+            mode: 'composite',
+            attributes: r.attributes,
+            totalAttributes: r.totalAttributes,
+            passedAttributes: r.passedAttributes,
+            verificationTime: r.verificationTime
+          }
+        }
+      } else {
+        // Legacy single proof format
+        const { proof, publicSignals, nullifier, verificationType } = proofData
+        if (!proof || !publicSignals || !nullifier || !verificationType) {
+          throw new Error('Invalid proof format (expected presentation envelope or legacy single proof)')
+        }
+        const r = await api.verifyProof(verificationType, {
+          proof, publicSignals, nullifier
+        })
+        result = {
+          success: r.success,
+          verified: r.verified,
+          mode: 'single',
+          attributes: [{ type: verificationType, passed: r.verified }],
+          verificationTime: r.verificationTime
+        }
       }
-
-      const result = await api.verifyProof(verificationType, {
-        proof,
-        publicSignals,
-        nullifier
-      })
 
       setVerificationResult(result)
       loadHistory()
@@ -427,26 +479,45 @@ function VerifierDashboard() {
                       <h3 className={`text-xl font-bold font-mono ${verificationResult.verified ? 'text-[#5B9A5B]' : 'text-red-400'}`}>
                         {verificationResult.verified ? 'VALID' : 'INVALID'}
                       </h3>
-                      <p className="text-gray-500 text-sm">attribute: {verificationResult.attribute}</p>
+                      <p className="text-gray-500 text-sm">
+                        {verificationResult.mode === 'composite'
+                          ? `composite · ${verificationResult.passedAttributes}/${verificationResult.totalAttributes} attributes passed`
+                          : `attribute · ${verificationResult.attributes?.[0]?.type || 'unknown'}`}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* Attribute breakdown */}
+                  {verificationResult.attributes && verificationResult.attributes.length > 0 && (
+                    <div className="mb-4 space-y-1.5">
+                      {verificationResult.attributes.map((attr, i) => (
+                        <div key={i} className="flex items-center justify-between px-3 py-2 bg-black/30 border border-white/5 rounded-md">
+                          <div className="flex items-center gap-2">
+                            {attr.passed
+                              ? <CheckCircle className="h-3.5 w-3.5 text-[#5B9A5B]" />
+                              : <XCircle className="h-3.5 w-3.5 text-red-400" />}
+                            <code className="text-xs text-white font-mono">{attr.type}_verification.circom</code>
+                          </div>
+                          <div className={`text-[11px] font-mono ${attr.passed ? 'text-[#5B9A5B]' : 'text-red-400'}`}>
+                            {attr.passed ? 'PASS' : 'FAIL'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="p-3 bg-black/30 rounded-lg border border-white/5">
                       <div className="text-xs text-gray-600 mb-1 font-mono">verify_time</div>
-                      <div className="text-white font-mono">{verificationResult.verificationTime}</div>
+                      <div className="text-white font-mono text-sm">{verificationResult.verificationTime}</div>
+                    </div>
+                    <div className="p-3 bg-black/30 rounded-lg border border-white/5">
+                      <div className="text-xs text-gray-600 mb-1 font-mono">mode</div>
+                      <div className="text-white font-mono text-sm">{verificationResult.mode}</div>
                     </div>
                     <div className="p-3 bg-black/30 rounded-lg border border-white/5">
                       <div className="text-xs text-gray-600 mb-1 font-mono">pii_exposed</div>
-                      <div className="text-[#5B9A5B] font-mono">0</div>
-                    </div>
-                    <div className="p-3 bg-black/30 rounded-lg border border-white/5">
-                      <div className="text-xs text-gray-600 mb-1 font-mono">dpdp_compliant</div>
-                      <div className="text-[#5B9A5B] font-mono">true</div>
-                    </div>
-                    <div className="p-3 bg-black/30 rounded-lg border border-white/5">
-                      <div className="text-xs text-gray-600 mb-1 font-mono">id</div>
-                      <div className="text-white font-mono text-xs">{verificationResult.verificationId?.slice(0, 8)}...</div>
+                      <div className="text-[#5B9A5B] font-mono text-sm">0</div>
                     </div>
                   </div>
                 </div>

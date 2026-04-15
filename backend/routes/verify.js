@@ -68,9 +68,7 @@ router.post('/age', async (req, res, next) => {
       verified: isSuccessful,
       attribute: `age >= ${minimumAge}`,
       verificationId,
-      verificationTime: `${verificationTime}ms`,
-      piiExposed: false,
-      dpdpCompliant: true
+      verificationTime: `${verificationTime}ms`
     });
 
   } catch (error) {
@@ -127,9 +125,7 @@ router.post('/aadhaar', async (req, res, next) => {
       verified: isSuccessful,
       attribute: 'valid_aadhaar',
       verificationId,
-      verificationTime: `${verificationTime}ms`,
-      piiExposed: false,
-      dpdpCompliant: true
+      verificationTime: `${verificationTime}ms`
     });
 
   } catch (error) {
@@ -189,11 +185,111 @@ router.post('/state', async (req, res, next) => {
       verified: isSuccessful,
       attribute: `resident_of_state_${stateCode}`,
       verificationId,
-      verificationTime: `${verificationTime}ms`,
-      piiExposed: false,
-      dpdpCompliant: true
+      verificationTime: `${verificationTime}ms`
     });
 
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/v1/verify/composite
+ * Multi-attribute verification: accepts N proofs from different circuits,
+ * verifies each, checks all nullifiers unique, stores as a single composite record.
+ * Body: { proofs: [{ type, proof, publicSignals, nullifier }, ...] }
+ */
+router.post('/composite', async (req, res, next) => {
+  const startTime = Date.now();
+  try {
+    const { proofs, verifierName } = req.body;
+    if (!Array.isArray(proofs) || proofs.length === 0) {
+      return res.status(400).json({
+        error: true,
+        message: 'Expected non-empty array of proofs'
+      });
+    }
+
+    const results = [];
+    const usedNullifiers = new Set();
+
+    // Verify each proof
+    for (const p of proofs) {
+      if (!p.type || !p.proof || !p.publicSignals || !p.nullifier) {
+        return res.status(400).json({
+          error: true,
+          message: `Malformed proof entry: missing type/proof/publicSignals/nullifier`
+        });
+      }
+
+      // Replay check against DB
+      const existing = await verificationOps.findByNullifier(p.nullifier);
+      if (existing) {
+        return res.status(400).json({
+          error: true,
+          message: `Proof for ${p.type} already used (nullifier replay)`,
+          code: 'NULLIFIER_REUSE'
+        });
+      }
+
+      // Dedup within this request
+      if (usedNullifiers.has(p.nullifier)) {
+        return res.status(400).json({
+          error: true,
+          message: `Duplicate nullifier in composite request`
+        });
+      }
+      usedNullifiers.add(p.nullifier);
+
+      const vr = await verifyProof(p.type, p.proof, p.publicSignals);
+      const attrValid = p.publicSignals[0] === '1';
+
+      results.push({
+        type: p.type,
+        cryptographicallyValid: vr.valid,
+        attributeValid: attrValid,
+        passed: vr.valid && attrValid,
+        nullifier: p.nullifier
+      });
+    }
+
+    // AND all results
+    const allPassed = results.every(r => r.passed);
+    const verificationTime = Date.now() - startTime;
+
+    // Store each successful attribute's nullifier (only on full composite success,
+    // to allow retry if one attribute fails)
+    let verificationIds = [];
+    if (allPassed) {
+      for (const r of results) {
+        const id = await verificationOps.create({
+          verification_type: `composite_${r.type}`,
+          nullifier: r.nullifier,
+          public_signals: [],
+          verification_time_ms: verificationTime,
+          result: true,
+          verifier_id: verifierName || null,
+          metadata: {
+            compositeAttributes: results.map(x => x.type),
+            verifierName: verifierName || null
+          }
+        });
+        verificationIds.push(id);
+      }
+    }
+
+    res.json({
+      success: true,
+      verified: allPassed,
+      attributes: results.map(r => ({
+        type: r.type,
+        passed: r.passed
+      })),
+      totalAttributes: results.length,
+      passedAttributes: results.filter(r => r.passed).length,
+      verificationIds,
+      verificationTime: `${verificationTime}ms`
+    });
   } catch (error) {
     next(error);
   }
@@ -242,8 +338,7 @@ router.post('/generate-proof', async (req, res, next) => {
       nullifier: result.nullifier,
       isValid: result.isValid,
       proofGenerationTime: `${result.proofTime}ms`,
-      totalTime: `${totalTime}ms`,
-      note: 'Proofs are generated client-side for privacy'
+      totalTime: `${totalTime}ms`
     });
 
   } catch (error) {
@@ -431,9 +526,7 @@ router.post('/request/:id/complete', async (req, res, next) => {
       verified: isSuccessful,
       requestId,
       verificationId,
-      verificationTime: `${verificationTime}ms`,
-      piiExposed: false,
-      dpdpCompliant: true
+      verificationTime: `${verificationTime}ms`
     });
   } catch (error) {
     next(error);

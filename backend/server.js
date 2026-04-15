@@ -10,7 +10,14 @@ const PORT = process.env.PORT || 3000;
 // CORS configuration
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-  : ['http://localhost:5173', 'http://localhost:3000'];
+  : [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+      'http://localhost:3000',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:5174'
+    ];
 
 app.use(cors({
   origin: allowedOrigins,
@@ -40,14 +47,12 @@ app.get('/health', (req, res) => {
 // API info
 app.get('/api/v1', (req, res) => {
   res.json({
-    name: 'Eigenparse ZKP-KYC API',
+    name: 'Eigenparse API',
     version: '1.0.0',
-    description: 'Privacy-preserving KYC verification using Zero-Knowledge Proofs',
     endpoints: {
       credentials: '/api/v1/credentials',
       verify: '/api/v1/verify'
-    },
-    compliance: ['DPDP Act 2023', 'NIST FIPS-203/204']
+    }
   });
 });
 

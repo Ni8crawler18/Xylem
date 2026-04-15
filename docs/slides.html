@@ -3,23 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Xylem — Prove Without Sharing</title>
+<title>Xylem — Team Eigen | DSCI Innovation Challenge</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-  /* Fallback if Google Fonts fail */
-  @font-face { font-family: 'Inter'; src: local('Inter'), local('Helvetica Neue'), local('Arial'); }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
 
   :root {
-    --bg: #0a0a0a;
-    --surface: #141414;
-    --surface2: #1a1a1a;
-    --border: #2a2a2a;
-    --text: #e8e8e8;
-    --text-dim: #888;
+    --bg: #08080a;
+    --surface: #111114;
+    --surface2: #1a1a1e;
+    --border: #252528;
+    --text: #f0f0f0;
+    --text-dim: #8a8a96;
     --accent: #22c55e;
     --accent-dim: #16a34a;
-    --accent-glow: rgba(34, 197, 94, 0.15);
+    --accent-glow: rgba(34, 197, 94, 0.12);
     --red: #ef4444;
+    --red-glow: rgba(239, 68, 68, 0.1);
     --yellow: #eab308;
     --blue: #3b82f6;
   }
@@ -35,12 +34,7 @@
     width: 100vw;
   }
 
-  /* Slide container */
-  .deck {
-    width: 100vw;
-    height: 100vh;
-    position: relative;
-  }
+  .deck { width: 100vw; height: 100vh; position: relative; }
 
   .slide {
     position: absolute;
@@ -51,86 +45,73 @@
     padding: 60px 100px;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.5s ease, transform 0.5s ease;
-    transform: translateX(40px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    transform: translateX(30px);
   }
-
-  .slide.active {
-    opacity: 1;
-    visibility: visible;
-    transform: translateX(0);
-  }
-
-  .slide.prev {
-    transform: translateX(-40px);
-  }
+  .slide.active { opacity: 1; visibility: visible; transform: translateX(0); }
+  .slide.prev { transform: translateX(-30px); }
 
   /* Typography */
   h1 {
-    font-size: 3.5rem;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
+    font-size: 3.8rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
     margin-bottom: 16px;
   }
-
   h2 {
-    font-size: 2.4rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
+    font-size: 2.6rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
     margin-bottom: 20px;
   }
-
   h3 {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 600;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     color: var(--accent);
   }
-
   p, li {
     font-size: 1.15rem;
     line-height: 1.7;
     color: var(--text-dim);
     max-width: 900px;
   }
-
   .lead {
-    font-size: 1.35rem;
-    color: var(--text);
+    font-size: 1.4rem;
+    color: var(--text-dim);
     font-weight: 400;
-    line-height: 1.6;
-    max-width: 800px;
+    line-height: 1.55;
+    max-width: 850px;
   }
-
-  .highlight {
-    color: var(--accent);
-    font-weight: 600;
-  }
-
+  .highlight { color: var(--accent); font-weight: 600; }
   .dim { color: var(--text-dim); }
-
   strong { color: var(--text); font-weight: 600; }
 
   /* Accent line */
   .accent-line {
-    width: 60px;
+    width: 48px;
     height: 4px;
     background: var(--accent);
     border-radius: 2px;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
   }
 
-  /* Tag pills */
-  .tags {
-    display: flex;
-    gap: 12px;
-    margin-top: 20px;
-    flex-wrap: wrap;
+  /* Section label */
+  .slide-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 14px;
   }
+
+  /* Tags */
+  .tags { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
   .tag {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 500;
     padding: 6px 16px;
     border-radius: 100px;
@@ -144,60 +125,54 @@
     background: var(--accent-glow);
   }
 
-  /* Bullet list */
-  .bullets {
-    list-style: none;
-    margin-top: 16px;
-  }
-  .bullets li {
-    position: relative;
-    padding-left: 24px;
-    margin-bottom: 14px;
-    font-size: 1.1rem;
-  }
-  .bullets li::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 10px;
-    width: 8px;
-    height: 8px;
-    background: var(--accent);
-    border-radius: 50%;
-  }
-
-  /* Numbered list */
-  .numbered {
-    list-style: none;
-    margin-top: 16px;
-    counter-reset: step;
-  }
-  .numbered li {
-    position: relative;
-    padding-left: 40px;
-    margin-bottom: 14px;
-    font-size: 1.05rem;
-    counter-increment: step;
-  }
-  .numbered li::before {
-    content: counter(step);
-    position: absolute;
-    left: 0;
-    top: 1px;
-    width: 26px;
-    height: 26px;
-    background: var(--accent-glow);
-    border: 1px solid var(--accent-dim);
-    border-radius: 50%;
+  /* Stat row */
+  .stats {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    font-weight: 600;
+    gap: 48px;
+    margin-top: 32px;
+  }
+  .stat-num {
+    font-size: 2.8rem;
+    font-weight: 800;
     color: var(--accent);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-top: 6px;
+    font-weight: 500;
   }
 
-  /* Tier cards */
+  /* Problem cards */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin-top: 28px;
+  }
+  .problem-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 24px;
+    border-top: 3px solid var(--red);
+  }
+  .problem-card h3 { color: var(--text); font-size: 1.05rem; margin-bottom: 10px; }
+  .problem-card p { font-size: 0.95rem; line-height: 1.55; }
+  .problem-card .example {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--red);
+    background: var(--red-glow);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 14px;
+    border: 1px solid rgba(239, 68, 68, 0.15);
+  }
+
+  /* Solution tiers */
   .tiers {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -209,36 +184,26 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 24px;
-    transition: border-color 0.3s;
-  }
-  .tier-card:hover {
-    border-color: var(--accent-dim);
+    border-top: 3px solid var(--accent);
   }
   .tier-card .tier-label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--accent);
     margin-bottom: 8px;
   }
-  .tier-card h3 {
-    font-size: 1.1rem;
-    color: var(--text);
-    margin-bottom: 10px;
-  }
-  .tier-card p {
-    font-size: 0.95rem;
-    line-height: 1.5;
-  }
+  .tier-card h3 { font-size: 1.05rem; color: var(--text); margin-bottom: 10px; }
+  .tier-card p { font-size: 0.92rem; line-height: 1.5; }
   .tier-example {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     color: var(--accent);
     background: var(--accent-glow);
     padding: 8px 12px;
     border-radius: 6px;
-    margin-top: 12px;
+    margin-top: 14px;
     border: 1px solid rgba(34, 197, 94, 0.1);
   }
 
@@ -247,7 +212,7 @@
     display: flex;
     align-items: stretch;
     gap: 0;
-    margin-top: 28px;
+    margin-top: 32px;
     width: 100%;
   }
   .flow-node {
@@ -255,12 +220,11 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 22px 20px;
+    padding: 24px 20px;
     text-align: center;
-    position: relative;
   }
   .flow-node.device {
-    flex: 1.5;
+    flex: 1.4;
     border-color: var(--accent-dim);
     background: var(--accent-glow);
   }
@@ -268,28 +232,28 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 60px;
+    width: 56px;
     flex-shrink: 0;
     color: var(--text-dim);
-    font-size: 1.4rem;
+    font-size: 1.5rem;
   }
   .flow-node .flow-label {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     color: var(--text-dim);
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
   .flow-node .flow-title {
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 1.05rem;
+    font-weight: 700;
     color: var(--text);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
   .flow-node .flow-items {
     font-size: 0.85rem;
     color: var(--text-dim);
-    line-height: 1.6;
+    line-height: 1.7;
   }
   .flow-node .flow-items .accent-text {
     color: var(--accent);
@@ -298,13 +262,13 @@
 
   /* Comparison table */
   .compare-table {
-    margin-top: 20px;
+    margin-top: 24px;
     border-collapse: collapse;
     width: 100%;
-    max-width: 800px;
+    max-width: 880px;
   }
   .compare-table th, .compare-table td {
-    padding: 12px 20px;
+    padding: 14px 20px;
     text-align: left;
     font-size: 0.95rem;
     border-bottom: 1px solid var(--border);
@@ -312,56 +276,74 @@
   .compare-table th {
     color: var(--text-dim);
     font-weight: 500;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
-  .compare-table td:first-child {
-    color: var(--text);
-    font-weight: 500;
-  }
-  .compare-table .yes {
-    color: var(--accent);
-    font-weight: 600;
-  }
-  .compare-table .no {
-    color: var(--red);
-    font-weight: 500;
-  }
+  .compare-table td:first-child { color: var(--text); font-weight: 500; }
+  .compare-table .yes { color: var(--accent); font-weight: 600; }
+  .compare-table .no { color: var(--red); font-weight: 500; }
 
-  /* Data table */
+  /* Use case grid */
+  .use-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .use-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    border-left: 3px solid var(--accent);
+  }
+  .use-card .use-sector {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .use-card h3 { color: var(--text); font-size: 1rem; margin-bottom: 6px; }
+  .use-card p { font-size: 0.88rem; line-height: 1.5; }
+
+  /* Data grid */
   .data-grid {
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 0;
     margin-top: 20px;
-    max-width: 550px;
+    max-width: 480px;
     border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
   }
   .data-grid .dg-cell {
-    padding: 12px 20px;
+    padding: 11px 20px;
     font-size: 0.95rem;
     border-bottom: 1px solid var(--border);
   }
-  .data-grid .dg-cell:nth-last-child(-n+2) {
-    border-bottom: none;
-  }
+  .data-grid .dg-cell:nth-last-child(-n+2) { border-bottom: none; }
   .data-grid .dg-header {
     background: var(--surface);
     font-weight: 500;
     color: var(--text-dim);
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
-  .data-grid .dg-label {
-    color: var(--text);
-  }
-  .data-grid .dg-stored {
-    text-align: center;
-    font-weight: 600;
+  .data-grid .dg-label { color: var(--text); }
+  .data-grid .dg-stored { text-align: center; font-weight: 600; }
+
+  /* Two column */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    margin-top: 24px;
+    align-items: start;
   }
 
   /* Code block */
@@ -369,39 +351,30 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 18px 24px;
+    padding: 16px 22px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     line-height: 1.7;
-    margin-top: 16px;
-    max-width: 600px;
+    margin-top: 14px;
+    max-width: 500px;
     color: var(--text-dim);
   }
   .code-block .keyword { color: var(--blue); }
   .code-block .string { color: var(--accent); }
   .code-block .comment { color: #555; }
 
-  /* Two column */
-  .two-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-    margin-top: 20px;
-    align-items: start;
-  }
-
-  /* Closing slide */
+  /* Closing */
   .closing-points {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-top: 20px;
-    margin-bottom: 24px;
+    gap: 18px;
+    margin-top: 24px;
+    margin-bottom: 28px;
   }
   .closing-point {
     display: flex;
     align-items: flex-start;
-    gap: 14px;
+    gap: 16px;
   }
   .closing-icon {
     width: 36px;
@@ -410,136 +383,144 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
+    font-size: 0.95rem;
     flex-shrink: 0;
     background: var(--accent-glow);
     border: 1px solid var(--accent-dim);
     color: var(--accent);
     font-weight: 700;
   }
-  .closing-point p {
-    font-size: 1.05rem;
+  .closing-point p { font-size: 1.05rem; }
+  .closing-point strong { color: var(--text); }
+
+  /* Title slide */
+  .title-center { text-align: center; align-items: center; }
+  .title-center .accent-line { margin-left: auto; margin-right: auto; }
+
+  /* Subtitle */
+  .subtitle {
+    font-size: 1.45rem;
+    font-weight: 400;
     color: var(--text-dim);
+    margin-bottom: 8px;
+    line-height: 1.45;
   }
-  .closing-point strong {
-    color: var(--text);
+
+  .brand {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
   }
 
   /* Bottom bar */
   .bottom-bar {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
     background: var(--surface2);
     z-index: 100;
   }
-  .progress {
-    height: 100%;
-    background: var(--accent);
-    transition: width 0.4s ease;
-  }
+  .progress { height: 100%; background: var(--accent); transition: width 0.4s ease; }
 
-  /* Slide number */
   .slide-num {
     position: fixed;
-    bottom: 16px;
-    right: 32px;
-    font-size: 0.8rem;
+    bottom: 14px; right: 32px;
+    font-size: 0.75rem;
     font-weight: 500;
     color: var(--text-dim);
     z-index: 100;
     font-family: 'JetBrains Mono', monospace;
   }
 
-  /* Slide label */
-  .slide-label {
-    font-size: 0.75rem;
+  .team-badge {
+    position: fixed;
+    bottom: 14px; left: 32px;
+    font-size: 0.7rem;
     font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--text-dim);
-    margin-bottom: 12px;
+    color: #444;
+    z-index: 100;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
   }
 
-  /* Subtitle */
-  .subtitle {
-    font-size: 1.5rem;
-    font-weight: 400;
-    color: var(--text-dim);
-    margin-bottom: 8px;
-    line-height: 1.4;
-  }
-
-  /* Logo / brand */
-  .brand {
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--accent);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    margin-bottom: 12px;
-  }
-
-  /* Title slide special */
-  .title-center {
-    text-align: center;
-    align-items: center;
-  }
-  .title-center .accent-line {
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  /* Print / PDF styles */
-  @media print {
-    body { overflow: visible; background: white; color: #111; }
-    .slide {
-      position: relative;
-      opacity: 1;
-      visibility: visible;
-      transform: none;
-      page-break-after: always;
-      height: 100vh;
-      padding: 50px 80px;
-    }
-    .slide:last-child { page-break-after: avoid; }
-    .bottom-bar, .slide-num { display: none; }
-    .tag { border-color: #ccc; color: #555; background: #f5f5f5; }
-    .tag.green { border-color: #16a34a; color: #16a34a; background: #f0fdf4; }
-    h1, h2, h3, strong { color: #111; }
-    p, li { color: #444; }
-    .highlight, .accent-text, .tier-label, .yes { color: #16a34a; }
-    .no { color: #dc2626; }
-    .flow-node { border-color: #ddd; background: #f9f9f9; }
-    .flow-node.device { border-color: #16a34a; background: #f0fdf4; }
-    .tier-card { background: #f9f9f9; border-color: #ddd; }
-    .surface, .code-block, .data-grid { background: #f9f9f9; border-color: #ddd; }
-    .accent-line { background: #16a34a; }
-    .brand { color: #16a34a; }
-    .closing-icon { background: #f0fdf4; border-color: #16a34a; color: #16a34a; }
-    var { --accent-glow: #f0fdf4; }
-  }
-
-  /* Keyboard hint */
   .hint {
     position: fixed;
-    bottom: 16px;
-    left: 32px;
-    font-size: 0.75rem;
-    color: #444;
+    bottom: 14px; left: 50%; transform: translateX(-50%);
+    font-size: 0.7rem;
+    color: #333;
     z-index: 100;
     font-family: 'JetBrains Mono', monospace;
   }
   .hint kbd {
     display: inline-block;
-    padding: 2px 8px;
+    padding: 2px 7px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 4px;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     margin: 0 2px;
+  }
+
+  .big-quote {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+    max-width: 800px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--accent);
+    padding-left: 24px;
+  }
+
+  /* Numbered steps */
+  .steps {
+    display: flex;
+    gap: 20px;
+    margin-top: 24px;
+  }
+  .step {
+    flex: 1;
+    text-align: center;
+    padding: 20px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    position: relative;
+  }
+  .step-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent-glow);
+    border: 1.5px solid var(--accent-dim);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 12px auto;
+  }
+  .step h3 { color: var(--text); font-size: 0.95rem; margin-bottom: 6px; text-align: center; }
+  .step p { font-size: 0.85rem; line-height: 1.5; text-align: center; }
+  .step-arrow {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim); font-size: 1.2rem;
+    width: 24px; flex-shrink: 0;
+  }
+
+  @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { overflow: visible !important; background: var(--bg) !important; height: auto !important; }
+    .deck { height: auto !important; position: static !important; overflow: visible !important; }
+    .slide {
+      position: relative !important; opacity: 1 !important; visibility: visible !important;
+      transform: none !important; display: flex !important;
+      page-break-after: always; page-break-inside: avoid; height: 100vh; padding: 50px 80px;
+    }
+    .slide.prev { transform: none !important; }
+    .slide:last-child { page-break-after: avoid; }
+    .bottom-bar, .slide-num, .hint, .team-badge { display: none !important; }
   }
 </style>
 </head>
@@ -551,55 +532,66 @@
   <div class="slide title-center active" data-slide="0">
     <div class="brand">Xylem</div>
     <h1>Prove Without Sharing</h1>
-    <p class="subtitle">Custom Business Logic on Aadhaar VC<br>using Zero-Knowledge Proofs</p>
+    <p class="subtitle">Privacy-Preserving KYC using Zero-Knowledge Proofs</p>
     <div class="accent-line"></div>
+    <p class="dim" style="font-size: 1rem; margin-bottom: 4px;">DSCI Cyber Security Innovation Challenge 1.0 &mdash; Cryptography Domain</p>
     <div class="tags">
-      <span class="tag green">Fintech Sector</span>
-      <span class="tag green">Post-Quantum (ZK-STARKs)</span>
+      <span class="tag green">Team Eigen</span>
+      <span class="tag green">Groth16 ZK-SNARKs</span>
       <span class="tag">DPDP Act 2023</span>
-      <span class="tag">Aadhaar VC ID'athon</span>
+      <span class="tag">Aadhaar Verifiable Credentials</span>
     </div>
   </div>
 
-  <!-- SLIDE 2: The Problem -->
+  <!-- SLIDE 2: Problem -->
   <div class="slide" data-slide="1">
     <div class="slide-label">The Problem</div>
-    <h2>Aadhaar VC gives us selective disclosure.<br>But businesses need more than yes/no claims.</h2>
+    <h2>KYC today equates <span class="highlight">verification</span><br>with <span style="color: var(--red);">data collection</span>.</h2>
     <div class="accent-line"></div>
-    <p class="lead" style="margin-bottom: 24px;">
-      UIDAI's Aadhaar VC is a major step forward &mdash; users control what to share, and <span class="highlight">isAdult</span> avoids revealing DOB. But real business decisions aren't that simple.
-    </p>
-    <ul class="bullets">
-      <li><strong>No custom thresholds</strong> &mdash; A lending platform needs "age 25-55 AND income above 5 lakhs." There's no pre-computed claim for every possible business condition.</li>
-      <li><strong>No duplicate detection</strong> &mdash; Detecting duplicate loan applications across platforms requires a shared identifier. SD-JWT produces no linkable, non-reversible token.</li>
-      <li><strong>No cross-source proofs</strong> &mdash; Business rules combine Aadhaar + ITR + credit score. No single authority builds cross-credential verification.</li>
-    </ul>
+    <p class="lead" style="margin-bottom: 28px;">To answer a yes/no question like "is this person 21+?", platforms collect name, DOB, Aadhaar number, address, and photo. Then store it. Then get breached.</p>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <h3>Fixed Booleans</h3>
+        <p>UIDAI's Aadhaar VC offers <strong>AgeAbove18</strong> &mdash; one fixed claim. A lender needs "age 25-55". An insurer needs "age 35-45". No pre-computed claim exists.</p>
+        <div class="example">SD-JWT: AgeAbove18 = Yes. Need 21+? Sorry.</div>
+      </div>
+      <div class="problem-card">
+        <h3>No Duplicate Detection</h3>
+        <p>Same person applies at 5 NBFCs. No privacy-preserving way to detect it. SD-JWT has no cross-platform linkable token that isn't PII.</p>
+        <div class="example">5 loans, 5 platforms, zero dedup</div>
+      </div>
+      <div class="problem-card">
+        <h3>Breach Liability</h3>
+        <p>Every platform that stores KYC data becomes a breach target. DPDP Act 2023 imposes penalties. The data shouldn't exist on the verifier's side at all.</p>
+        <div class="example">DPDP: up to Rs 250 crore per breach</div>
+      </div>
+    </div>
   </div>
 
-  <!-- SLIDE 3: The Solution -->
+  <!-- SLIDE 3: Solution -->
   <div class="slide" data-slide="2">
     <div class="slide-label">The Solution</div>
-    <h2>Three Tiers of Zero-Knowledge Proofs</h2>
+    <h2>Don't collect data.<br><span class="highlight">Verify the math instead.</span></h2>
     <div class="accent-line"></div>
-    <p style="margin-bottom: 4px;">A ZK proof engine on the user's device. Credentials in, boolean out. Private data never leaves.</p>
+    <p class="lead" style="margin-bottom: 8px;">User's device reads their credential, runs a ZK circuit locally, outputs a proof. The verifier checks one equation. Gets a boolean. Stores nothing.</p>
     <div class="tiers">
       <div class="tier-card">
-        <div class="tier-label">Tier 1</div>
-        <h3>Customizable Proofs</h3>
-        <p>Single field, custom threshold. Unlike UIDAI's fixed <strong>isAdult</strong>, the threshold is configurable.</p>
-        <div class="tier-example">"Age &ge; 25" for home loan<br>"Age 30-45" for insurance</div>
+        <div class="tier-label">Tier 1 &mdash; Custom Proofs</div>
+        <h3>Any threshold, one credential</h3>
+        <p>Verifier sets the condition as a public input. One circuit handles every age threshold, every bracket, every cutoff.</p>
+        <div class="tier-example">"age &ge; 21" for Karnataka<br>"age &ge; 25" for Maharashtra</div>
       </div>
       <div class="tier-card">
-        <div class="tier-label">Tier 2</div>
-        <h3>Composite Proofs</h3>
-        <p>Multiple Aadhaar VC fields in a single proof. One source, multiple conditions.</p>
-        <div class="tier-example">"Age &ge; 25 AND resident of Maharashtra"<br>"Valid Aadhaar AND age &le; 25 AND from UP"</div>
+        <div class="tier-label">Tier 2 &mdash; Composite Proofs</div>
+        <h3>Multiple conditions, one boolean</h3>
+        <p>Combine age + residence + gender in a single proof. Verifier learns only: "all conditions met" or "not met".</p>
+        <div class="tier-example">"age &ge; 25 AND from TN"<br>"age &le; 25 AND female AND from UP"</div>
       </div>
       <div class="tier-card">
-        <div class="tier-label">Tier 3</div>
-        <h3>Multi-Source Proofs</h3>
-        <p>Aadhaar + ITR + Credit Bureau in one proof. No single authority can build this.</p>
-        <div class="tier-example">"Age 25-55 AND income 5L-50L<br>AND credit score &ge; 700"</div>
+        <div class="tier-label">Tier 3 &mdash; Multi-Source</div>
+        <h3>Cross-credential proofs</h3>
+        <p>Aadhaar VC + ITR + credit bureau &rarr; one composite eligibility proof. No single issuer builds this.</p>
+        <div class="tier-example">"age 25-55 AND income 5L-50L<br>AND credit &ge; 700"</div>
       </div>
     </div>
   </div>
@@ -607,163 +599,371 @@
   <!-- SLIDE 4: How It Works -->
   <div class="slide" data-slide="3">
     <div class="slide-label">How It Works</div>
-    <h2>Aadhaar VC + Multi-Source Flow</h2>
+    <h2>Secret &rarr; Commitment &rarr; Proof &rarr; Verify</h2>
     <div class="accent-line"></div>
     <div class="flow">
       <div class="flow-node">
-        <div class="flow-label">Issuers</div>
-        <div class="flow-title">Credential Sources</div>
+        <div class="flow-label">Step 1 &mdash; Credential</div>
+        <div class="flow-title">UIDAI Issues VC</div>
         <div class="flow-items">
-          Aadhaar VC <span class="dim">(UIDAI)</span><br>
-          ITR Data <span class="dim">(IT Dept)</span><br>
-          Credit Score <span class="dim">(CIBIL)</span>
+          SD-JWT with 41 claims<br>
+          Signed with RSA-4096<br>
+          <span class="accent-text">User holds on device</span>
         </div>
       </div>
       <div class="flow-arrow">&rarr;</div>
       <div class="flow-node device">
-        <div class="flow-label">Holder</div>
-        <div class="flow-title">User's Device</div>
+        <div class="flow-label">Step 2 &mdash; Proof Generation</div>
+        <div class="flow-title">User's Browser</div>
         <div class="flow-items">
-          All private inputs stay here<br>
-          <span class="accent-text">ZK-STARK circuit runs locally</span><br>
-          Outputs: proof + nullifier
+          Circom circuit + snarkjs<br>
+          <span class="accent-text">Groth16 proof in ~700ms</span><br>
+          PII never leaves device
         </div>
       </div>
       <div class="flow-arrow">&rarr;</div>
       <div class="flow-node">
-        <div class="flow-label">Verifier</div>
-        <div class="flow-title">NBFC / Platform</div>
+        <div class="flow-label">Step 3 &mdash; Verification</div>
+        <div class="flow-title">Verifier</div>
         <div class="flow-items">
-          Verifies proof mathematically<br>
-          Checks nullifier for duplicates<br>
-          <span class="accent-text">Stores: ZERO personal data</span>
+          One pairing equation &mdash; <span class="accent-text">5ms</span><br>
+          Check nullifier uniqueness<br>
+          <span class="accent-text">Stores: boolean + nullifier</span>
         </div>
       </div>
     </div>
-    <ol class="numbered" style="margin-top: 24px;">
-      <li>User holds credentials from multiple authorities on their device</li>
-      <li>ZK-STARK circuit verifies each credential's signature AND proves the business condition</li>
-      <li>Only the proof crosses the wire &mdash; all PII stays on device</li>
-      <li>Deterministic nullifier enables cross-platform duplicate detection without PII</li>
-    </ol>
+    <div class="stats">
+      <div>
+        <div class="stat-num">192 B</div>
+        <div class="stat-label">Proof size (3 curve points)</div>
+      </div>
+      <div>
+        <div class="stat-num">~700ms</div>
+        <div class="stat-label">Client-side proof generation</div>
+      </div>
+      <div>
+        <div class="stat-num">5ms</div>
+        <div class="stat-label">Server-side verification</div>
+      </div>
+      <div>
+        <div class="stat-num">0</div>
+        <div class="stat-label">PII stored by verifier</div>
+      </div>
+    </div>
   </div>
 
-  <!-- SLIDE 5: Post-Quantum -->
+  <!-- SLIDE 5: QR Verification Flow -->
   <div class="slide" data-slide="4">
-    <div class="slide-label">Post-Quantum Security</div>
-    <h2>Why ZK-STARKs?</h2>
+    <div class="slide-label">QR Verification Flow</div>
+    <h2>Bridging physical &amp; digital<br><span class="highlight">with zero data exchange.</span></h2>
     <div class="accent-line"></div>
-    <p class="lead" style="margin-bottom: 24px;">UIDAI's Aadhaar VC uses RS256 (RSA) &mdash; a quantum-vulnerable signing scheme.<br>Xylem's proof layer is designed to <span class="highlight">survive quantum computing</span>.</p>
+    <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 48px; margin-top: 8px; align-items: center;">
+      <div>
+        <!-- QR visual mock -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; text-align: center;">
+          <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 16px;">Verification Request</div>
+          <div style="display: inline-block; background: white; padding: 16px; border-radius: 12px; margin-bottom: 16px;">
+            <svg viewBox="0 0 100 100" width="160" height="160">
+              <rect fill="#000" x="5" y="5" width="25" height="25" rx="3"/>
+              <rect fill="#000" x="70" y="5" width="25" height="25" rx="3"/>
+              <rect fill="#000" x="5" y="70" width="25" height="25" rx="3"/>
+              <rect fill="#000" x="10" y="10" width="15" height="15" rx="2"/>
+              <rect fill="#fff" x="13" y="13" width="9" height="9" rx="1"/>
+              <rect fill="#000" x="75" y="10" width="15" height="15" rx="2"/>
+              <rect fill="#fff" x="78" y="13" width="9" height="9" rx="1"/>
+              <rect fill="#000" x="10" y="75" width="15" height="15" rx="2"/>
+              <rect fill="#fff" x="13" y="78" width="9" height="9" rx="1"/>
+              <rect fill="#000" x="35" y="5" width="5" height="5"/>
+              <rect fill="#000" x="45" y="5" width="5" height="5"/>
+              <rect fill="#000" x="55" y="5" width="5" height="5"/>
+              <rect fill="#000" x="35" y="15" width="5" height="5"/>
+              <rect fill="#000" x="50" y="15" width="5" height="5"/>
+              <rect fill="#000" x="35" y="25" width="5" height="5"/>
+              <rect fill="#000" x="45" y="25" width="5" height="5"/>
+              <rect fill="#000" x="60" y="25" width="5" height="5"/>
+              <rect fill="#000" x="5" y="35" width="5" height="5"/>
+              <rect fill="#000" x="15" y="40" width="5" height="5"/>
+              <rect fill="#000" x="25" y="35" width="5" height="5"/>
+              <rect fill="#000" x="40" y="35" width="5" height="5"/>
+              <rect fill="#000" x="50" y="40" width="5" height="5"/>
+              <rect fill="#000" x="65" y="35" width="5" height="5"/>
+              <rect fill="#000" x="80" y="35" width="5" height="5"/>
+              <rect fill="#000" x="90" y="40" width="5" height="5"/>
+              <rect fill="#000" x="5" y="50" width="5" height="5"/>
+              <rect fill="#000" x="20" y="50" width="5" height="5"/>
+              <rect fill="#000" x="35" y="50" width="5" height="5"/>
+              <rect fill="#000" x="50" y="50" width="5" height="5"/>
+              <rect fill="#000" x="65" y="50" width="5" height="5"/>
+              <rect fill="#000" x="80" y="50" width="5" height="5"/>
+              <rect fill="#000" x="90" y="50" width="5" height="5"/>
+              <rect fill="#000" x="10" y="60" width="5" height="5"/>
+              <rect fill="#000" x="30" y="60" width="5" height="5"/>
+              <rect fill="#000" x="45" y="60" width="5" height="5"/>
+              <rect fill="#000" x="55" y="55" width="5" height="5"/>
+              <rect fill="#000" x="70" y="60" width="5" height="5"/>
+              <rect fill="#000" x="85" y="60" width="5" height="5"/>
+              <rect fill="#000" x="35" y="70" width="5" height="5"/>
+              <rect fill="#000" x="45" y="75" width="5" height="5"/>
+              <rect fill="#000" x="55" y="70" width="5" height="5"/>
+              <rect fill="#000" x="70" y="70" width="5" height="5"/>
+              <rect fill="#000" x="85" y="70" width="5" height="5"/>
+              <rect fill="#000" x="35" y="80" width="5" height="5"/>
+              <rect fill="#000" x="50" y="85" width="5" height="5"/>
+              <rect fill="#000" x="60" y="80" width="5" height="5"/>
+              <rect fill="#000" x="70" y="85" width="5" height="5"/>
+              <rect fill="#000" x="80" y="80" width="5" height="5"/>
+              <rect fill="#000" x="90" y="90" width="5" height="5"/>
+              <rect fill="#000" x="40" y="90" width="5" height="5"/>
+              <rect fill="#000" x="55" y="90" width="5" height="5"/>
+              <rect fill="#000" x="75" y="90" width="5" height="5"/>
+            </svg>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 600; color: var(--accent); letter-spacing: 0.15em;">A3F2-X9K1</div>
+          <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 8px;">Age Verification &bull; Expires in 10 min</div>
+        </div>
+      </div>
+      <div>
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; gap: 14px; align-items: flex-start;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-glow); border: 1.5px solid var(--accent-dim); color: var(--accent); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">1</div>
+            <div>
+              <div style="font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 4px;">Verifier creates request</div>
+              <div style="font-size: 0.92rem; color: var(--text-dim); line-height: 1.5;">Selects verification type (age, state, identity). Gets a QR code + short code with 10-minute expiry.</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 14px; align-items: flex-start;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-glow); border: 1.5px solid var(--accent-dim); color: var(--accent); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">2</div>
+            <div>
+              <div style="font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 4px;">User scans QR or enters code</div>
+              <div style="font-size: 0.92rem; color: var(--text-dim); line-height: 1.5;">Sees what's being asked and who's asking. No data shared yet.</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 14px; align-items: flex-start;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-glow); border: 1.5px solid var(--accent-dim); color: var(--accent); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">3</div>
+            <div>
+              <div style="font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 4px;">Proof generated on device</div>
+              <div style="font-size: 0.92rem; color: var(--text-dim); line-height: 1.5;">Browser runs the Groth16 circuit locally using stored credential. <span style="color: var(--accent);">~700ms.</span> PII never leaves.</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 14px; align-items: flex-start;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-glow); border: 1.5px solid var(--accent-dim); color: var(--accent); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">4</div>
+            <div>
+              <div style="font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 4px;">Verifier gets result</div>
+              <div style="font-size: 0.92rem; color: var(--text-dim); line-height: 1.5;">Dashboard updates: <span style="color: var(--accent); font-weight: 600;">Verified</span> or Failed. Stored: nullifier + boolean. Nothing else.</div>
+            </div>
+          </div>
+        </div>
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 20px; margin-top: 20px;">
+          <div style="font-size: 0.8rem; color: var(--text-dim);">What crosses the wire between user and verifier:</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent); margin-top: 6px;">{ proof: [3 curve points], nullifier: hash, isValid: true }</div>
+          <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 6px;">What does NOT cross: name, DOB, Aadhaar, address, photo &mdash; nothing.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: ZKP vs SD-JWT -->
+  <div class="slide" data-slide="5">
+    <div class="slide-label">Why ZKP over SD-JWT?</div>
+    <h2>SD-JWT reveals claim values.<br><span class="highlight">ZKP reveals only the result.</span></h2>
+    <div class="accent-line"></div>
     <table class="compare-table">
       <thead>
         <tr>
-          <th>Property</th>
-          <th>UIDAI SD-JWT (RS256)</th>
-          <th>Xylem (ZK-STARKs)</th>
+          <th style="width: 40%;">Capability</th>
+          <th style="width: 30%;">Aadhaar SD-JWT</th>
+          <th style="width: 30%;">Xylem (Groth16 ZKP)</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>Quantum-resistant</td>
-          <td class="no">No (RSA broken by Shor's)</td>
-          <td class="yes">Yes (hash-based)</td>
+          <td>Custom thresholds (age &ge; 21, 25, 55)</td>
+          <td class="no">Fixed AgeAbove18 only</td>
+          <td class="yes">Any threshold as public input</td>
         </tr>
         <tr>
-          <td>Trusted setup</td>
-          <td class="dim">N/A</td>
-          <td class="yes">Not needed (transparent)</td>
+          <td>Composite checks (age AND state AND income)</td>
+          <td class="no">Discloses each value</td>
+          <td class="yes">Single boolean output</td>
         </tr>
         <tr>
-          <td>Security basis</td>
-          <td>RSA factoring</td>
-          <td class="yes">SHA-256 / BLAKE3 hashes</td>
+          <td>Cross-platform dedup</td>
+          <td class="no">No mechanism</td>
+          <td class="yes">Deterministic nullifiers</td>
         </tr>
         <tr>
-          <td>When quantum arrives</td>
-          <td class="no">Signatures can be forged</td>
-          <td class="yes">Proofs remain valid</td>
+          <td>Verifier cross-linking users</td>
+          <td class="no">Credential ID always visible</td>
+          <td class="yes">Unlinkable across verifiers</td>
+        </tr>
+        <tr>
+          <td>After verifier breach</td>
+          <td>Claim values + credential ID</td>
+          <td class="yes">Meaningless hashes + booleans</td>
         </tr>
       </tbody>
     </table>
-    <p style="margin-top: 20px;">ZKP security comes from <strong>mathematics, not secrecy</strong>. The circuit runs client-side &mdash; algorithm is public by design. Anyone can see how the proof is generated. No one can forge a proof without private inputs.</p>
+    <p style="margin-top: 24px; font-size: 1.1rem;">
+      SD-JWT is a step forward. ZKP is the next step &mdash; <strong>selective computation</strong>, not just selective disclosure. We consume the SD-JWT as input and output a proof. The VC stays untouched.
+    </p>
   </div>
 
-  <!-- SLIDE 6: Use Cases -->
-  <div class="slide" data-slide="5">
+  <!-- SLIDE 7: Use Cases -->
+  <div class="slide" data-slide="6">
     <div class="slide-label">Use Cases</div>
-    <h2>Who needs this &mdash; and why SD-JWT falls short</h2>
+    <h2>Where this applies &mdash; today.</h2>
     <div class="accent-line"></div>
+    <div class="use-grid">
+      <div class="use-card">
+        <div class="use-sector">Lending &amp; NBFCs</div>
+        <h3>Loan Pre-qualification</h3>
+        <p>"Age 25-55 AND income 5L-50L AND credit &ge; 700" &mdash; one proof, zero data. Nullifiers detect duplicate applications across platforms.</p>
+      </div>
+      <div class="use-card">
+        <div class="use-sector">Insurance</div>
+        <h3>Bracket Pricing</h3>
+        <p>Range proof reveals "age in 35-45 bracket" without revealing DOB. Composite with "metro resident" for urban health plans.</p>
+      </div>
+      <div class="use-card">
+        <div class="use-sector">Government</div>
+        <h3>Subsidy &amp; Scholarships</h3>
+        <p>"Age &le; 25 AND from UP AND income &le; 2.5L" &mdash; one proof replaces document stacks. Nullifier prevents duplicate claims.</p>
+      </div>
+      <div class="use-card">
+        <div class="use-sector">Age-Gated Services</div>
+        <h3>State-Specific Compliance</h3>
+        <p>Drinking age varies by state (21 KA, 25 MH). Gaming, alcohol delivery &mdash; platform sets threshold as a public input.</p>
+      </div>
+      <div class="use-card">
+        <div class="use-sector">Property &amp; Rental</div>
+        <h3>Tenant Verification</h3>
+        <p>Aadhaar (identity) + ITR (income &ge; 3x rent) + EPFO (employed) &mdash; landlord gets one boolean. Zero document copies.</p>
+      </div>
+      <div class="use-card">
+        <div class="use-sector">KYC Dedup</div>
+        <h3>Cross-Platform Identity</h3>
+        <p>Same person at 5 banks = same nullifier. Banks share nullifiers (not PII) via registry. One hash, zero personal data.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Phase 3 Integrations -->
+  <div class="slide" data-slide="7">
+    <div class="slide-label">Phase 3 &mdash; Mock Integrations</div>
+    <h2>Real ZK proofs.<br><span class="highlight">Three sectors. Live demo.</span></h2>
+    <div class="accent-line"></div>
+    <p class="lead" style="margin-bottom: 24px;">Three production-style onboarding flows, each using real Circom circuits and real Groth16 proofs. Same backend, same circuits, different sectors.</p>
     <div class="tiers">
       <div class="tier-card">
-        <div class="tier-label">Lending &amp; NBFCs</div>
-        <h3>Loan Pre-qualification</h3>
-        <p>"Age 25-55 AND income 5L-50L AND credit &ge; 700" &mdash; complete eligibility, zero data stored. Nullifiers detect duplicate applications across platforms.</p>
-        <div class="tier-example">RBI gets dedup without central PII</div>
+        <div class="tier-label">Lending / NBFC</div>
+        <h3>Credence Instant Loan</h3>
+        <p>Age 21+ verification replaces 48hr document review. Uses age_verification.circom.</p>
+        <div class="tier-example">~2s vs ~48hr<br>0 PII vs full profile</div>
       </div>
       <div class="tier-card">
-        <div class="tier-label">Insurance</div>
-        <h3>Bracket Pricing</h3>
-        <p>Insurers price by age bracket (25-35, 35-45). Range proof reveals the bracket, not the DOB. Composite: "age 35-45 AND metro resident" for urban health plans.</p>
-        <div class="tier-example">isAdult tells nothing useful here</div>
+        <div class="tier-label">Telecom</div>
+        <h3>AirWave SIM KYC</h3>
+        <p>DoT-compliant SIM activation without photocopies, biometrics, or agent visits. Uses aadhaar_validity.circom.</p>
+        <div class="tier-example">~2s vs ~24hr<br>No Aadhaar photocopy stored</div>
       </div>
       <div class="tier-card">
         <div class="tier-label">Government</div>
-        <h3>Subsidy &amp; Scholarships</h3>
-        <p>"Age &le; 25 AND from UP AND income &le; 2.5L" &mdash; one proof replaces document stacks. Nullifier prevents duplicate claims across district offices.</p>
-        <div class="tier-example">No document collection or storage</div>
+        <h3>Vidya Scholarship</h3>
+        <p>State residence proof replaces 5 document submissions at district office. Uses state_verification.circom.</p>
+        <div class="tier-example">~3s vs ~2 weeks<br>Nullifier dedup across districts</div>
       </div>
     </div>
-    <div style="display: flex; gap: 20px; margin-top: 20px;">
-      <div class="tier-card" style="flex: 1;">
-        <div class="tier-label">State Compliance</div>
-        <h3>Age-gated Services</h3>
-        <p>Drinking age: 21 Karnataka, 25 Maharashtra. Gaming, alcohol delivery, financial products &mdash; each platform sets its own threshold as a public input.</p>
-      </div>
-      <div class="tier-card" style="flex: 1;">
-        <div class="tier-label">Property &amp; Rental</div>
-        <h3>Tenant Verification</h3>
-        <p>Aadhaar (identity) + ITR (income &ge; 3x rent) + EPFO (employed) &mdash; landlord gets a boolean. No salary slips, no Aadhaar copies.</p>
-      </div>
-      <div class="tier-card" style="flex: 1;">
-        <div class="tier-label">KYC Dedup</div>
-        <h3>Cross-platform Identity</h3>
-        <p>Same person at 5 banks = same nullifier. Banks share nullifiers (not PII) via registry. One person, one hash, zero personal data centralized.</p>
-      </div>
-    </div>
+    <p style="margin-top: 20px; font-size: 1rem; color: var(--text-dim);">
+      <strong>Multi-attribute verification</strong> &mdash; composite proofs combine multiple circuits (e.g. age AND state) via unified nullifiers.
+      Try at <span class="highlight">eigenparse.com/onboarding</span> or <span class="highlight">eigenparse.com/multi-attribute</span>.
+    </p>
   </div>
 
-  <!-- SLIDE 7: Data Handling -->
-  <div class="slide" data-slide="6">
-    <div class="slide-label">Data Handling & Deployment</div>
-    <h2>What the verifier stores: nothing personal.</h2>
+  <!-- SLIDE 9: DPDP Compliance -->
+  <div class="slide" data-slide="8">
+    <div class="slide-label">DPDP Act 2023 Compliance</div>
+    <h2>Compliance by<br><span class="highlight">architecture, not audit.</span></h2>
+    <div class="accent-line"></div>
+    <p class="lead" style="margin-bottom: 24px;">Every section of DPDP Act 2023 satisfied by how the system is built &mdash; not by policies, not by audits, not by manual enforcement.</p>
+    <table class="compare-table" style="font-size: 0.85rem;">
+      <thead>
+        <tr>
+          <th style="width: 28%;">DPDP Section</th>
+          <th style="width: 36%;">Requirement</th>
+          <th style="width: 36%;">Xylem Implementation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>§ 6 &mdash; Consent</td>
+          <td>Free, specific, informed, unambiguous</td>
+          <td class="yes">Per-proof user approval, discrete action</td>
+        </tr>
+        <tr>
+          <td>§ 7(1) &mdash; Data minimization</td>
+          <td>Only necessary data</td>
+          <td class="yes">Boolean + nullifier only. Zero PII.</td>
+        </tr>
+        <tr>
+          <td>§ 8(3) &mdash; Purpose limitation</td>
+          <td>Used only for consented purpose</td>
+          <td class="yes">Nullifiers scoped per verification type</td>
+        </tr>
+        <tr>
+          <td>§ 8(7) &mdash; Storage limitation</td>
+          <td>Erased when no longer needed</td>
+          <td class="yes">No PII stored, ever</td>
+        </tr>
+        <tr>
+          <td>§ 8(6) &mdash; Breach notification</td>
+          <td>Notify data breaches</td>
+          <td class="yes">No data to breach (see live demo)</td>
+        </tr>
+        <tr>
+          <td>§ 12 &mdash; Right to erasure</td>
+          <td>Delete personal data on request</td>
+          <td class="yes">Inherent &mdash; nothing to erase</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin-top: 18px; font-size: 1rem; color: var(--text-dim);">
+      Live compliance dashboard at <span class="highlight">eigenparse.com/compliance</span> &mdash; includes PII exposure reduction score, benchmark vs traditional eKYC, and interactive breach simulation.
+    </p>
+  </div>
+
+  <!-- SLIDE 10: What We Store -->
+  <div class="slide" data-slide="9">
+    <div class="slide-label">Data Architecture</div>
+    <h2>What the verifier stores:<br><span class="highlight">nothing personal.</span></h2>
     <div class="accent-line"></div>
     <div class="two-col">
       <div>
         <div class="data-grid">
-          <div class="dg-cell dg-header">Data</div>
+          <div class="dg-cell dg-header">User Data</div>
           <div class="dg-cell dg-header" style="text-align:center">Stored?</div>
           <div class="dg-cell dg-label">Aadhaar Number</div>
-          <div class="dg-cell dg-stored no">No</div>
-          <div class="dg-cell dg-label">Date of Birth / Income</div>
-          <div class="dg-cell dg-stored no">No</div>
+          <div class="dg-cell dg-stored no">Never</div>
+          <div class="dg-cell dg-label">Date of Birth</div>
+          <div class="dg-cell dg-stored no">Never</div>
           <div class="dg-cell dg-label">Name / Address</div>
-          <div class="dg-cell dg-stored no">No</div>
-          <div class="dg-cell dg-label">Credit Score</div>
-          <div class="dg-cell dg-stored no">No</div>
-          <div class="dg-cell dg-label">Cryptographic Nullifier</div>
+          <div class="dg-cell dg-stored no">Never</div>
+          <div class="dg-cell dg-label">Income / Credit Score</div>
+          <div class="dg-cell dg-stored no">Never</div>
+          <div class="dg-cell dg-label">Nullifier Hash</div>
           <div class="dg-cell dg-stored yes">Yes</div>
           <div class="dg-cell dg-label">Boolean Result</div>
           <div class="dg-cell dg-stored yes">Yes</div>
         </div>
+        <p style="margin-top: 16px; font-size: 0.92rem;">If this database is breached, the attacker gets meaningless hashes and booleans. <strong>Zero PII exists to leak.</strong></p>
       </div>
       <div>
-        <h3>Consent-driven</h3>
-        <p style="margin-bottom: 16px;">User explicitly selects which proof to generate. Chooses the circuit, approves parameters, triggers proof generation.</p>
-        <h3>Fraud detection via nullifiers</h3>
-        <p style="margin-bottom: 16px;">Same person at multiple NBFCs &rarr; same nullifier. Share nullifiers (not PII) to detect duplicates.</p>
-        <h3>Single API endpoint</h3>
+        <h3>No Middleware on Aadhaar APIs</h3>
+        <p style="margin-bottom: 18px;">We never call UIDAI. The user holds the VC. Our app reads it locally. No AUA license needed. No API dependency.</p>
+        <h3>DPDP Compliant by Architecture</h3>
+        <p style="margin-bottom: 18px;">Data minimization isn't a policy &mdash; it's a mathematical constraint. The circuit cannot output PII. The verifier cannot store what doesn't exist.</p>
+        <h3>Verifier Integration</h3>
         <div class="code-block">
-          <span class="keyword">POST</span> /api/v1/verify/loan-eligibility<br>
+          <span class="keyword">POST</span> /api/v1/verify/eligibility<br>
           <span class="comment">// Request</span><br>
           { proof, publicSignals, nullifier }<br>
           <span class="comment">// Response</span><br>
@@ -773,54 +973,44 @@
     </div>
   </div>
 
-  <!-- SLIDE 8: Closing -->
-  <div class="slide" data-slide="7">
-    <div class="slide-label">Closing</div>
-    <h2>Aadhaar VC tells you what claims exist.<br><span class="highlight">Xylem lets you compute across claims &mdash;<br>without collecting any data.</span></h2>
+  <!-- SLIDE 11: Closing -->
+  <div class="slide title-center" data-slide="10">
+    <div class="brand">Team Eigen &mdash; Cryptography Domain</div>
+    <h2 style="font-size: 2.4rem;">Aadhaar VC tells you what claims exist.<br><span class="highlight">Xylem lets you compute on them &mdash;<br>without seeing any data.</span></h2>
     <div class="accent-line"></div>
-    <div class="closing-points">
-      <div class="closing-point">
-        <div class="closing-icon">1</div>
-        <p><strong>Custom business logic</strong> &mdash; configurable thresholds, range proofs, composite conditions that SD-JWT alone cannot do.</p>
+    <div style="display: flex; gap: 40px; justify-content: center; margin-top: 8px; margin-bottom: 24px; flex-wrap: wrap;">
+      <div style="text-align: center;">
+        <div class="stat-num" style="font-size: 2rem;">3</div>
+        <div class="stat-label">Phase 3 integrations</div>
       </div>
-      <div class="closing-point">
-        <div class="closing-icon">2</div>
-        <p><strong>Multi-source composite proofs</strong> &mdash; Aadhaar + ITR + credit bureau in one proof. No single authority can build this.</p>
+      <div style="text-align: center;">
+        <div class="stat-num" style="font-size: 2rem;">700ms</div>
+        <div class="stat-label">Client-side proof generation</div>
       </div>
-      <div class="closing-point">
-        <div class="closing-icon">3</div>
-        <p><strong>Nullifier-based fraud detection</strong> &mdash; cross-platform duplicate detection with zero PII database.</p>
+      <div style="text-align: center;">
+        <div class="stat-num" style="font-size: 2rem;">192 B</div>
+        <div class="stat-label">Proof size</div>
+      </div>
+      <div style="text-align: center;">
+        <div class="stat-num" style="font-size: 2rem;">0</div>
+        <div class="stat-label">PII stored</div>
       </div>
     </div>
-    <p style="font-size: 1.2rem; color: var(--text); margin-bottom: 20px;">
-      Post-quantum by design. Client-side by architecture. DPDP compliant by mathematics.
+    <p style="font-size: 1.15rem; color: var(--text-dim); max-width: 700px; text-align: center;">
+      Client-side by architecture. DPDP compliant by mathematics.<br>No middleware on Aadhaar APIs. Open source circuits.
     </p>
-    <div style="display: flex; gap: 32px; align-items: center; flex-wrap: wrap;">
-      <div>
-        <h3 style="margin-bottom: 4px;">Working prototype</h3>
-        <p>Three ZK circuits, client-side proof generation, nullifier tracking</p>
-      </div>
-      <div>
-        <h3 style="margin-bottom: 4px;">What we need</h3>
-        <p>Aadhaar VC sandbox access + ITR API access</p>
-      </div>
+    <div class="tags" style="justify-content: center; margin-top: 20px;">
+      <span class="tag green">DSCI Cyber Security Innovation Challenge 1.0</span>
+      <span class="tag">Groth16 &bull; Circom &bull; snarkjs &bull; BN254</span>
     </div>
   </div>
 
 </div>
 
-<!-- Bottom progress bar -->
-<div class="bottom-bar">
-  <div class="progress" id="progress"></div>
-</div>
-
-<!-- Slide number -->
-<div class="slide-num" id="slideNum">1 / 8</div>
-
-<!-- Keyboard hint -->
-<div class="hint">
-  <kbd>&larr;</kbd> <kbd>&rarr;</kbd> navigate &nbsp;&middot;&nbsp; <kbd>F</kbd> fullscreen &nbsp;&middot;&nbsp; <kbd>Ctrl+P</kbd> export PDF
-</div>
+<div class="bottom-bar"><div class="progress" id="progress"></div></div>
+<div class="slide-num" id="slideNum">1 / 11</div>
+<div class="team-badge">Team Eigen &bull; DSCI 2026</div>
+<div class="hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> navigate &middot; <kbd>F</kbd> fullscreen</div>
 
 <script>
   const slides = document.querySelectorAll('.slide');
@@ -850,7 +1040,6 @@
     }
   });
 
-  // Touch support
   let touchX = 0;
   document.addEventListener('touchstart', e => touchX = e.touches[0].clientX);
   document.addEventListener('touchend', e => {
@@ -858,13 +1047,11 @@
     if (Math.abs(diff) > 50) diff < 0 ? goTo(current + 1) : goTo(current - 1);
   });
 
-  // Click navigation (left/right half)
   document.addEventListener('click', e => {
-    if (e.target.closest('.hint, .slide-num')) return;
+    if (e.target.closest('.hint, .slide-num, .team-badge')) return;
     e.clientX > window.innerWidth / 2 ? goTo(current + 1) : goTo(current - 1);
   });
 
-  // Init
   goTo(0);
 </script>
 
