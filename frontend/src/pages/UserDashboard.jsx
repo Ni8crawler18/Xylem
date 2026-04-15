@@ -412,14 +412,40 @@ function UserDashboard() {
       {/* Main Content */}
       <div className="flex-1 p-8 overflow-y-auto">
         {/* Mobile Header */}
-        <div className="lg:hidden flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <img src="/logo.png" alt="Eigenparse" className="h-8 w-8" />
-            <span className="text-xl font-bold text-white">Eigenparse</span>
+        <div className="lg:hidden mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <img src="/logo.png" alt="Eigenparse" className="h-8 w-8" />
+              <span className="text-xl font-bold text-white">Eigenparse</span>
+            </div>
+            <button onClick={logout} className="text-gray-500 hover:text-red-400">
+              <LogOut className="h-5 w-5" />
+            </button>
           </div>
-          <button onClick={logout} className="text-gray-500 hover:text-red-400">
-            <LogOut className="h-5 w-5" />
-          </button>
+          <div className="flex gap-2 bg-[#0D0D0D] border border-white/10 rounded-lg p-1">
+            <button
+              onClick={() => setActiveTab('wallet')}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-mono transition-colors ${
+                activeTab === 'wallet'
+                  ? 'bg-[#5B9A5B]/10 text-[#5B9A5B] border border-[#5B9A5B]/30'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Shield className="h-4 w-4" />
+              Wallet
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-mono transition-colors ${
+                activeTab === 'history'
+                  ? 'bg-[#5B9A5B]/10 text-[#5B9A5B] border border-[#5B9A5B]/30'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <History className="h-4 w-4" />
+              History
+            </button>
+          </div>
         </div>
 
         {/* Page Header */}
