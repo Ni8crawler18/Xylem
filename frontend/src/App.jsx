@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import LoginModal from './components/LoginModal'
+import Logo from './components/Logo'
 import Home from './pages/Home'
 import Slides from './pages/Slides'
 import UserDashboard from './pages/UserDashboard'
@@ -24,7 +25,7 @@ function Navigation({ onLoginClick }) {
           {/* Logo */}
           <div className="flex items-center">
             <a href="/" className="flex items-center space-x-3 group">
-              <img src="/logo.png" alt="Eigenparse" className="h-8 w-8" />
+              <Logo size={32} />
               <span className="text-xl font-bold text-white">Eigenparse</span>
             </a>
           </div>

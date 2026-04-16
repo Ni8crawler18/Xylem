@@ -1,4 +1,5 @@
 import { ArrowRight, CheckCircle, Terminal, Code, Cpu, GitBranch, Github, Twitter, FileText, Shield } from 'lucide-react'
+import Logo from '../components/Logo'
 
 function Home({ onLoginClick }) {
   return (
@@ -421,7 +422,7 @@ function Home({ onLoginClick }) {
             {/* Brand */}
             <div className="md:col-span-1">
               <div className="flex items-center space-x-3 mb-4">
-                <img src="/logo.png" alt="Eigenparse" className="h-8 w-8" />
+                <Logo size={32} />
                 <span className="text-white font-semibold text-lg">Eigenparse</span>
               </div>
               <p className="text-sm text-gray-500 mb-4">
