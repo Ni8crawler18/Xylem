@@ -25,7 +25,7 @@ function Navigation({ onLoginClick }) {
           {/* Logo */}
           <div className="flex items-center">
             <a href="/" className="flex items-center space-x-3 group">
-              <Logo size={32} />
+              <img src="/logo.png" alt="Eigenparse" className="h-8 w-8" />
               <span className="text-xl font-bold text-white">Eigenparse</span>
             </a>
           </div>

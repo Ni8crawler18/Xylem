@@ -265,7 +265,7 @@ function VerifierDashboard() {
       {/* Sidebar */}
       <div className="w-64 bg-[#0D0D0D] border-r border-white/10 p-6 hidden lg:flex flex-col">
         <div className="flex items-center space-x-3 mb-8">
-          <Logo size={32} />
+          <img src="/logo.png" alt="Eigenparse" className="h-8 w-8" />
           <span className="text-xl font-bold text-white">Eigenparse</span>
         </div>
 
@@ -314,7 +314,7 @@ function VerifierDashboard() {
         <div className="lg:hidden mb-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
-              <Logo size={32} />
+              <img src="/logo.png" alt="Eigenparse" className="h-8 w-8" />
               <span className="text-xl font-bold text-white">Eigenparse</span>
             </div>
             <button onClick={logout} className="text-gray-500 hover:text-red-400">
