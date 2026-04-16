@@ -154,57 +154,93 @@
 <!-- 4. WORKFLOW ARCHITECTURE -->
 <div class="slide" data-slide="3">
   <div class="sl">Workflow Architecture</div>
-  <h2>Issuer &rarr; Prover &rarr; Verifier</h2>
+  <h2>Multi-Source &rarr; ZKP Layer &rarr; Multi-Verifier</h2>
   <div class="accent-line"></div>
-  <div class="flow">
-    <div class="fn">
-      <div class="fl">Step 1 &mdash; Credential Issuance</div>
-      <div class="ft">Issuer</div>
-      <div class="fi">
-        UIDAI &bull; DigiLocker<br>
-        Account Aggregator<br>
-        Credit Bureau &bull; NSDC<br><br>
-        <span class="at">Signs credential (SD-JWT / XML)</span><br>
-        User receives on device
+  <div style="display:grid;grid-template-columns:1fr auto 1.3fr auto 1fr;gap:0;margin-top:16px;align-items:stretch">
+    <!-- ISSUERS COLUMN -->
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div class="fn" style="padding:10px 12px;text-align:left;flex:1">
+        <div style="font-size:.6rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">UIDAI Pehchaan</div>
+        <div style="font-size:.72rem;color:var(--dim)">DOB, Gender, Address, Photo</div>
+        <div style="font-size:.62rem;color:var(--accent);margin-top:3px;font-family:'JetBrains Mono',monospace">SD-JWT &bull; RS256</div>
+      </div>
+      <div class="fn" style="padding:10px 12px;text-align:left;flex:1">
+        <div style="font-size:.6rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">DigiLocker</div>
+        <div style="font-size:.72rem;color:var(--dim)">DL, PAN, Marksheets</div>
+        <div style="font-size:.62rem;color:var(--accent);margin-top:3px;font-family:'JetBrains Mono',monospace">Signed XML &bull; PKI</div>
+      </div>
+      <div class="fn" style="padding:10px 12px;text-align:left;flex:1">
+        <div style="font-size:.6rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Account Aggregator</div>
+        <div style="font-size:.72rem;color:var(--dim)">Bank statements, ITR</div>
+        <div style="font-size:.62rem;color:var(--accent);margin-top:3px;font-family:'JetBrains Mono',monospace">FI Data &bull; RBI regulated</div>
+      </div>
+      <div class="fn" style="padding:10px 12px;text-align:left;flex:1">
+        <div style="font-size:.6rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Credit Bureau</div>
+        <div style="font-size:.72rem;color:var(--dim)">Credit score, history</div>
+        <div style="font-size:.62rem;color:var(--accent);margin-top:3px;font-family:'JetBrains Mono',monospace">CIBIL &bull; Experian</div>
+      </div>
+      <div class="fn" style="padding:10px 12px;text-align:left;flex:1">
+        <div style="font-size:.6rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">NSDC Skill India</div>
+        <div style="font-size:.72rem;color:var(--dim)">Skill certs, training</div>
+        <div style="font-size:.62rem;color:var(--accent);margin-top:3px;font-family:'JetBrains Mono',monospace">W3C VC &bull; Blockchain</div>
       </div>
     </div>
-    <div class="fa">&rarr;</div>
-    <div class="fn active">
-      <div class="fl">Step 2 &mdash; Proof Generation</div>
-      <div class="ft">Prover (User Device)</div>
-      <div class="fi">
-        Import credential or<br>
-        approve via consent flow<br><br>
-        <span class="at">Groth16 proof in ~700ms</span><br>
-        Private inputs stay on device<br>
-        Outputs: proof + nullifier
+
+    <!-- ARROW -->
+    <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;width:36px">
+      <div style="font-size:1.1rem;color:var(--dim)">&rarr;</div>
+      <div style="font-size:.55rem;color:var(--dim);writing-mode:vertical-rl;margin-top:6px;font-family:'JetBrains Mono',monospace">signed credentials</div>
+    </div>
+
+    <!-- PROVER / ZKP LAYER -->
+    <div class="fn active" style="display:flex;flex-direction:column;justify-content:center;padding:20px">
+      <div class="fl">Eigenparse ZKP Layer</div>
+      <div class="ft">Prover &mdash; User Device</div>
+      <div class="fi" style="line-height:1.7">
+        Import credential (SD-JWT / XML / consent)<br>
+        User approves disclosed claims<br>
+        <span class="at">Poseidon commitment</span> computed<br>
+        Select attributes to prove<br>
+        <span class="at">Groth16 proof generated in ~700ms</span><br>
+        Single or composite (multi-attribute)<br>
+        QR code with 3-min TTL presentation<br>
+        <span class="at">Private inputs never leave device</span>
       </div>
     </div>
-    <div class="fa">&rarr;</div>
-    <div class="fn">
-      <div class="fl">Step 3 &mdash; Verification</div>
-      <div class="ft">Verifier</div>
-      <div class="fi">
-        Bank &bull; NBFC &bull; Telecom<br>
-        Government &bull; Insurance<br><br>
-        <span class="at">Pairing check in ~5ms</span><br>
-        Receives: boolean + nullifier<br>
-        Stores: zero PII
+
+    <!-- ARROW -->
+    <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;width:36px">
+      <div style="font-size:1.1rem;color:var(--dim)">&rarr;</div>
+      <div style="font-size:.55rem;color:var(--dim);writing-mode:vertical-rl;margin-top:6px;font-family:'JetBrains Mono',monospace">proof + nullifier</div>
+    </div>
+
+    <!-- VERIFIERS COLUMN -->
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div class="fn" style="padding:10px 12px;text-align:left;flex:1">
+        <div style="font-size:.6rem;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Bank / NBFC</div>
+        <div style="font-size:.72rem;color:var(--dim)">Loan eligibility</div>
+        <div style="font-size:.62rem;color:var(--accent);margin-top:3px">receives: boolean</div>
       </div>
-    </div>
-  </div>
-  <div style="margin-top:20px;display:flex;gap:24px;justify-content:center">
-    <div style="text-align:center">
-      <div style="font-size:.7rem;color:var(--dim);font-family:'JetBrains Mono',monospace">Issuer &rarr; Prover</div>
-      <div style="font-size:.75rem;color:var(--accent);font-weight:500;margin-top:3px">signed credential</div>
-    </div>
-    <div style="text-align:center">
-      <div style="font-size:.7rem;color:var(--dim);font-family:'JetBrains Mono',monospace">Prover &rarr; Verifier</div>
-      <div style="font-size:.75rem;color:var(--accent);font-weight:500;margin-top:3px">groth16 proof + nullifier</div>
-    </div>
-    <div style="text-align:center">
-      <div style="font-size:.7rem;color:var(--dim);font-family:'JetBrains Mono',monospace">Verifier &rarr; Prover</div>
-      <div style="font-size:.75rem;color:var(--accent);font-weight:500;margin-top:3px">boolean result</div>
+      <div class="fn" style="padding:10px 12px;text-align:left;flex:1">
+        <div style="font-size:.6rem;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Telecom</div>
+        <div style="font-size:.72rem;color:var(--dim)">SIM KYC</div>
+        <div style="font-size:.62rem;color:var(--accent);margin-top:3px">receives: boolean</div>
+      </div>
+      <div class="fn" style="padding:10px 12px;text-align:left;flex:1">
+        <div style="font-size:.6rem;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Government</div>
+        <div style="font-size:.72rem;color:var(--dim)">Subsidy eligibility</div>
+        <div style="font-size:.62rem;color:var(--accent);margin-top:3px">receives: boolean</div>
+      </div>
+      <div class="fn" style="padding:10px 12px;text-align:left;flex:1">
+        <div style="font-size:.6rem;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Insurance</div>
+        <div style="font-size:.72rem;color:var(--dim)">Bracket pricing</div>
+        <div style="font-size:.62rem;color:var(--accent);margin-top:3px">receives: boolean</div>
+      </div>
+      <div class="fn" style="padding:10px 12px;text-align:left;flex:1">
+        <div style="font-size:.6rem;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Rental / Property</div>
+        <div style="font-size:.72rem;color:var(--dim)">Tenant verification</div>
+        <div style="font-size:.62rem;color:var(--accent);margin-top:3px">receives: boolean</div>
+      </div>
     </div>
   </div>
 </div>
